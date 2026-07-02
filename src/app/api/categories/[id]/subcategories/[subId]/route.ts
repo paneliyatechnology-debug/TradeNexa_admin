@@ -1,7 +1,12 @@
-import { backendDelete, backendPut, backendPutMultipart } from "@/lib/backend-fetch";
+import { backendDelete, backendFetch, backendPut, backendPutMultipart } from "@/lib/backend-fetch";
 
 interface RouteParams {
   params: Promise<{ id: string; subId: string }>;
+}
+
+export async function GET(request: Request, { params }: RouteParams) {
+  const { id, subId } = await params;
+  return backendFetch(`/categories/${id}/subcategories/${subId}`, request);
 }
 
 export async function PUT(request: Request, { params }: RouteParams) {

@@ -61,3 +61,50 @@ export const API_ENDPOINTS = {
     general: "/settings/general",
   },
 } as const;
+
+/** Same-origin proxy paths — use in browser-side services to avoid CORS. */
+export const CLIENT_API_ROUTES = {
+  auth: {
+    login: "/api/auth/login",
+    logout: "/api/auth/logout",
+    profile: "/api/auth/profile",
+    refresh: "/api/auth/refresh-token",
+  },
+  categories: {
+    list: "/api/categories",
+    detail: (id: number | string) => `/api/categories/${id}`,
+    subcategories: (id: number | string) => `/api/categories/${id}/subcategories`,
+    subcategory: (categoryId: number | string, subId: number | string) =>
+      `/api/categories/${categoryId}/subcategories/${subId}`,
+  },
+  products: {
+    list: "/api/products",
+    detail: (id: number | string) => `/api/products/${id}`,
+  },
+  users: {
+    list: "/api/users",
+    detail: (id: string) => `/api/users/${id}`,
+  },
+  sellers: {
+    list: "/api/sellers",
+    detail: (id: string) => `/api/sellers/${id}`,
+  },
+  buyers: {
+    list: "/api/buyers",
+    detail: (id: string) => `/api/buyers/${id}`,
+  },
+  orders: {
+    list: "/api/orders",
+    detail: (id: string) => `/api/orders/${id}`,
+  },
+  support: {
+    tickets: "/api/support/tickets",
+    ticket: (id: string) => `/api/support/tickets/${id}`,
+  },
+  reports: {
+    overview: "/api/reports/overview",
+  },
+  settings: {
+    general: "/api/settings/general",
+  },
+} as const;

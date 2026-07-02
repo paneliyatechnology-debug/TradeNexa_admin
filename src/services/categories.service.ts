@@ -1,4 +1,4 @@
-import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
+import { CLIENT_API_ROUTES } from "@/config/api";
 import type { PaginatedData, ListParams } from "@/types/api";
 import type {
   Category,
@@ -45,7 +45,7 @@ export const categoriesService = {
     params: ListParams = {}
   ): Promise<PaginatedData<Category>> {
     return apiClientGet<PaginatedData<Category>>(
-      `${API_BASE_URL}${API_ENDPOINTS.categories.list}`,
+      CLIENT_API_ROUTES.categories.list,
       {
         page: params.page ?? 1,
         limit: params.limit ?? 10,
@@ -56,7 +56,7 @@ export const categoriesService = {
 
   async getCategory(categoryId: number): Promise<CategoryDetail> {
     return apiClientGet<CategoryDetail>(
-      `${API_BASE_URL}${API_ENDPOINTS.categories.detail(categoryId)}`
+      CLIENT_API_ROUTES.categories.detail(categoryId)
     );
   },
 
@@ -65,13 +65,13 @@ export const categoriesService = {
     subcategoryId: number
   ): Promise<SubcategoryDetail> {
     return apiClientGet<SubcategoryDetail>(
-      `${API_BASE_URL}${API_ENDPOINTS.categories.subcategory(categoryId, subcategoryId)}`
+      CLIENT_API_ROUTES.categories.subcategory(categoryId, subcategoryId)
     );
   },
 
   async createCategory(payload: CreateCategoryInput): Promise<Category> {
     return apiClientPostFormData<Category>(
-      `${API_BASE_URL}${API_ENDPOINTS.categories.list}`,
+      CLIENT_API_ROUTES.categories.list,
       buildCategoryFormData(payload)
     );
   },
@@ -81,7 +81,7 @@ export const categoriesService = {
     payload: CreateCategoryInput
   ): Promise<Subcategory> {
     return apiClientPostFormData<Subcategory>(
-      `${API_BASE_URL}${API_ENDPOINTS.categories.subcategories(categoryId)}`,
+      CLIENT_API_ROUTES.categories.subcategories(categoryId),
       buildCategoryFormData(payload)
     );
   },
@@ -91,7 +91,7 @@ export const categoriesService = {
     payload: UpdateCategoryInput
   ): Promise<Category> {
     return apiClientPutFormData<Category>(
-      `${API_BASE_URL}${API_ENDPOINTS.categories.detail(categoryId)}`,
+      CLIENT_API_ROUTES.categories.detail(categoryId),
       buildCategoryFormData(payload)
     );
   },
@@ -102,20 +102,20 @@ export const categoriesService = {
     payload: UpdateCategoryInput
   ): Promise<Subcategory> {
     return apiClientPutFormData<Subcategory>(
-      `${API_BASE_URL}${API_ENDPOINTS.categories.subcategory(categoryId, subcategoryId)}`,
+      CLIENT_API_ROUTES.categories.subcategory(categoryId, subcategoryId),
       buildCategoryFormData(payload)
     );
   },
 
   async deleteCategory(categoryId: number): Promise<void> {
     await apiClientDelete<null>(
-      `${API_BASE_URL}${API_ENDPOINTS.categories.detail(categoryId)}`
+      CLIENT_API_ROUTES.categories.detail(categoryId)
     );
   },
 
   async deleteSubcategory(categoryId: number, subcategoryId: number): Promise<void> {
     await apiClientDelete<null>(
-      `${API_BASE_URL}${API_ENDPOINTS.categories.subcategory(categoryId, subcategoryId)}`
+      CLIENT_API_ROUTES.categories.subcategory(categoryId, subcategoryId)
     );
   },
 };

@@ -1,3 +1,4 @@
+import { CLIENT_API_ROUTES } from "@/config/api";
 import type { PaginatedData, ListParams } from "@/types/api";
 import type { Product } from "@/types/product";
 import { apiClientGet } from "@/utils/api-client";
@@ -11,7 +12,7 @@ export const productsService = {
   async getProducts(
     params: ProductListParams = {}
   ): Promise<PaginatedData<Product>> {
-    return apiClientGet<PaginatedData<Product>>("/api/products", {
+    return apiClientGet<PaginatedData<Product>>(CLIENT_API_ROUTES.products.list, {
       page: params.page ?? 1,
       limit: params.limit ?? 10,
       is_active: params.is_active,

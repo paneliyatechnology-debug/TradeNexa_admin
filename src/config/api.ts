@@ -1,4 +1,6 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ??
+  "https://tradenexabackend-production.up.railway.app/api/v1";
 
 export const API_ENDPOINTS = {
   auth: {
@@ -7,6 +9,15 @@ export const API_ENDPOINTS = {
     me: "/auth/me",
     refresh: "/auth/refresh",
     forgotPassword: "/auth/forgot-password",
+  },
+  categories: {
+    list: "/categories",
+    detail: (id: number | string) => `/categories/${id}`,
+    subcategories: (id: number | string) => `/categories/${id}/subcategories`,
+  },
+  products: {
+    list: "/products",
+    detail: (id: number | string) => `/products/${id}`,
   },
   users: {
     list: "/users",
@@ -20,17 +31,9 @@ export const API_ENDPOINTS = {
     list: "/buyers",
     detail: (id: string) => `/buyers/${id}`,
   },
-  products: {
-    list: "/products",
-    detail: (id: string) => `/products/${id}`,
-  },
   orders: {
     list: "/orders",
     detail: (id: string) => `/orders/${id}`,
-  },
-  categories: {
-    list: "/categories",
-    detail: (id: string) => `/categories/${id}`,
   },
   support: {
     tickets: "/support/tickets",

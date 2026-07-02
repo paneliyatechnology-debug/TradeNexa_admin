@@ -11,4 +11,5 @@ export interface NavItem {
 export interface BreadcrumbItem {
   label: string;
   href?: string;
+  onClick?: () => void;
 }

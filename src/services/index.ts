@@ -1,4 +1,5 @@
 export { authService } from "./auth.service";
+export { categoriesService } from "./categories.service";
 export { usersService } from "./users.service";
 export { sellersService } from "./sellers.service";
 export { buyersService } from "./buyers.service";

@@ -1,16 +1,22 @@
-import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
+import type { PaginatedData, ListParams } from "@/types/api";
+import type { Product } from "@/types/product";
+import { apiClientGet } from "@/utils/api-client";
+
+export interface ProductListParams extends ListParams {
+  subcategory_id?: number;
+  category_id?: number;
+}
 
 export const productsService = {
-  async getAll() {
-    // GET `${API_BASE_URL}${API_ENDPOINTS.products.list}`
-    throw new Error("Not implemented");
-  },
-
-  async getById(id: string) {
-    // GET `${API_BASE_URL}${API_ENDPOINTS.products.detail(id)}`
-    void id;
-    throw new Error("Not implemented");
+  async getProducts(
+    params: ProductListParams = {}
+  ): Promise<PaginatedData<Product>> {
+    return apiClientGet<PaginatedData<Product>>("/api/products", {
+      page: params.page ?? 1,
+      limit: params.limit ?? 20,
+      is_active: params.is_active,
+      subcategory_id: params.subcategory_id,
+      category_id: params.category_id,
+    });
   },
 };
-
-export { API_BASE_URL, API_ENDPOINTS };

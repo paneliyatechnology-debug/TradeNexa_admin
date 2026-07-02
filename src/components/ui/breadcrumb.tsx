@@ -10,22 +10,31 @@ interface BreadcrumbProps {
 
 export function Breadcrumb({ items, className }: BreadcrumbProps) {
   return (
-    <nav aria-label="Breadcrumb" className={cn("flex items-center gap-1", className)}>
+    <nav aria-label="Breadcrumb" className={cn("flex flex-wrap items-center gap-1", className)}>
       {items.map((item, index) => {
         const isLast = index === items.length - 1;
+        const isClickable = !isLast && (item.href || item.onClick);
 
         return (
-          <div key={item.label} className="flex items-center gap-1">
+          <div key={`${item.label}-${index}`} className="flex items-center gap-1">
             {index > 0 && (
-              <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
             )}
-            {item.href && !isLast ? (
+            {isClickable && item.href ? (
               <Link
                 href={item.href}
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 {item.label}
               </Link>
+            ) : isClickable && item.onClick ? (
+              <button
+                type="button"
+                onClick={item.onClick}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {item.label}
+              </button>
             ) : (
               <span
                 className={cn(

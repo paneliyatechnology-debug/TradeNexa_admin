@@ -12,3 +12,15 @@ export const loginSchema = z.object({
 });
 
 export type LoginFormData = z.infer<typeof loginSchema>;
+
+export const createCategorySchema = z.object({
+  name: z
+    .string()
+    .min(1, "Name is required")
+    .max(120, "Name must be 120 characters or less"),
+  icon: z.instanceof(File).nullable().optional(),
+  image: z.instanceof(File).nullable().optional(),
+  is_active: z.boolean(),
+});
+
+export type CreateCategoryFormData = z.infer<typeof createCategorySchema>;

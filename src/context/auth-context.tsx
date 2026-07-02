@@ -4,20 +4,25 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useState,
   useSyncExternalStore,
 } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ROLE_DASHBOARD_MAP } from "@/config/routes";
-import { STORAGE_KEYS } from "@/constants/storage-keys";
+import { ROLE_DASHBOARD_MAP, ROUTES } from "@/config/routes";
+import { useTokenRefresh } from "@/hooks/use-token-refresh";
+import {
+  clearAuth,
+  emitAuthChange,
+  getAuthSnapshot,
+  persistAuth,
+  subscribeAuth,
+} from "@/lib/auth-session";
 import { authService } from "@/services/auth.service";
 import type { LoginCredentials, User, UserRole } from "@/types/auth";
-
-interface StoredAuth {
-  user: User;
-  token: string;
-}
+import { ADMIN_ACCESS_DENIED_MESSAGE } from "@/utils/map-backend-role";
 
 interface AuthContextValue {
   user: User | null;
@@ -27,72 +32,6 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => Promise<void>;
-}
-
-const AUTH_CHANGE_EVENT = "tradehub-auth-change";
-
-let cachedRaw: string | null | undefined;
-let cachedSnapshot: StoredAuth | null = null;
-
-function readRawAuth(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(STORAGE_KEYS.auth);
-}
-
-function updateAuthCache(): StoredAuth | null {
-  const raw = readRawAuth();
-
-  if (raw === cachedRaw) {
-    return cachedSnapshot;
-  }
-
-  cachedRaw = raw;
-  cachedSnapshot = raw ? (JSON.parse(raw) as StoredAuth) : null;
-  return cachedSnapshot;
-}
-
-function getAuthSnapshot(): StoredAuth | null {
-  return updateAuthCache();
-}
-
-function emitAuthChange() {
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
-  }
-}
-
-function subscribeAuth(onStoreChange: () => void) {
-  if (typeof window === "undefined") {
-    return () => undefined;
-  }
-
-  const handleChange = () => {
-    updateAuthCache();
-    onStoreChange();
-  };
-
-  window.addEventListener(AUTH_CHANGE_EVENT, handleChange);
-  window.addEventListener("storage", handleChange);
-
-  return () => {
-    window.removeEventListener(AUTH_CHANGE_EVENT, handleChange);
-    window.removeEventListener("storage", handleChange);
-  };
-}
-
-function persistAuth(auth: StoredAuth) {
-  if (typeof window === "undefined") return;
-  const raw = JSON.stringify(auth);
-  localStorage.setItem(STORAGE_KEYS.auth, raw);
-  cachedRaw = raw;
-  cachedSnapshot = auth;
-}
-
-function clearAuth() {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(STORAGE_KEYS.auth);
-  cachedRaw = null;
-  cachedSnapshot = null;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -109,36 +48,108 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => true,
     () => false
   );
+  const [sessionReady, setSessionReady] = useState(false);
 
   const user = stored?.user ?? null;
   const token = stored?.token ?? null;
+  const isAuthenticated = !!user && !!token;
+
+  useEffect(() => {
+    if (!hydrated) return;
+
+    const storedAuth = getAuthSnapshot();
+    if (!storedAuth?.token) {
+      setSessionReady(true);
+      return;
+    }
+
+    let cancelled = false;
+
+    const bootstrapSession = async () => {
+      try {
+        const snapshot = getAuthSnapshot();
+        if (!snapshot?.token) {
+          setSessionReady(true);
+          return;
+        }
+
+        const validatedUser = await authService.validateSession(snapshot.token);
+        if (cancelled) return;
+
+        persistAuth({
+          ...snapshot,
+          user: validatedUser,
+        });
+        emitAuthChange();
+        setSessionReady(true);
+      } catch (error) {
+        if (cancelled) return;
+
+        clearAuth();
+        emitAuthChange();
+
+        const message =
+          error instanceof Error ? error.message : ADMIN_ACCESS_DENIED_MESSAGE;
+
+        toast.error(message);
+        router.replace(
+          message === ADMIN_ACCESS_DENIED_MESSAGE
+            ? ROUTES.unauthorized
+            : ROUTES.login
+        );
+        setSessionReady(true);
+      }
+    };
+
+    void bootstrapSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated, router]);
+
+  useTokenRefresh(hydrated && isAuthenticated && sessionReady);
 
   const login = useCallback(
     async (credentials: LoginCredentials) => {
-      const response = await authService.login(credentials);
-      persistAuth({
-        user: response.user,
-        token: response.token,
-      });
+      try {
+        const response = await authService.login(credentials);
+        persistAuth({
+          user: response.user,
+          token: response.token,
+          refreshToken: response.refreshToken,
+        });
 
-      emitAuthChange();
-      toast.success(`Welcome back, ${response.user.name}!`);
-      router.replace(ROLE_DASHBOARD_MAP[response.user.role]);
+        emitAuthChange();
+        toast.success(`Welcome back, ${response.user.name}!`);
+        router.replace(ROLE_DASHBOARD_MAP[response.user.role]);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Login failed. Please try again.";
+
+        if (message === ADMIN_ACCESS_DENIED_MESSAGE) {
+          toast.error(message);
+          router.replace(ROUTES.unauthorized);
+          return;
+        }
+
+        throw error;
+      }
     },
     [router]
   );
 
   const logout = useCallback(async () => {
-    const currentToken = getAuthSnapshot()?.token;
+    const snapshot = getAuthSnapshot();
     try {
-      if (currentToken) {
-        await authService.logout();
+      if (snapshot?.token && snapshot.refreshToken) {
+        await authService.logout(snapshot.token, snapshot.refreshToken);
       }
     } finally {
       clearAuth();
       emitAuthChange();
       toast.success("Logged out successfully");
-      router.replace("/login");
+      router.replace(ROUTES.login);
     }
   }, [router]);
 
@@ -147,12 +158,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       role: user?.role ?? null,
       token,
-      loading: !hydrated,
-      isAuthenticated: !!user && !!token,
+      loading: !hydrated || !sessionReady,
+      isAuthenticated,
       login,
       logout,
     }),
-    [user, token, hydrated, login, logout]
+    [user, token, hydrated, sessionReady, isAuthenticated, login, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

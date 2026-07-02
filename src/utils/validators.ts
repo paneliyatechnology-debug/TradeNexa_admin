@@ -20,6 +20,8 @@ export const createCategorySchema = z.object({
     .max(120, "Name must be 120 characters or less"),
   icon: z.instanceof(File).nullable().optional(),
   image: z.instanceof(File).nullable().optional(),
+  clear_icon: z.boolean(),
+  clear_image: z.boolean(),
   is_active: z.boolean(),
 });
 

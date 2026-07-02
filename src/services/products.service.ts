@@ -13,7 +13,7 @@ export const productsService = {
   ): Promise<PaginatedData<Product>> {
     return apiClientGet<PaginatedData<Product>>("/api/products", {
       page: params.page ?? 1,
-      limit: params.limit ?? 20,
+      limit: params.limit ?? 10,
       is_active: params.is_active,
       subcategory_id: params.subcategory_id,
       category_id: params.category_id,

@@ -1,20 +1,13 @@
-import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
-
-/**
- * Users Service — placeholder for backend integration.
- * Replace mock implementations with actual API calls when backend is ready.
- */
+/** Uses authenticated apiClientGet — add `/api/users` proxy route when implementing. */
 export const usersService = {
   async getAll() {
-    // GET `${API_BASE_URL}${API_ENDPOINTS.users.list}`
+    // return apiClientGet("/api/users");
     throw new Error("Not implemented");
   },
 
   async getById(id: string) {
-    // GET `${API_BASE_URL}${API_ENDPOINTS.users.detail(id)}`
+    // return apiClientGet(`/api/users/${id}`);
     void id;
     throw new Error("Not implemented");
   },
 };
-
-export { API_BASE_URL, API_ENDPOINTS };

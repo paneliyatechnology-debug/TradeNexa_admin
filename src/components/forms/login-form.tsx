@@ -46,7 +46,7 @@ export function LoginForm() {
       <Input
         label="Email"
         type="email"
-        placeholder="admin@tradenexa.com"
+        placeholder="admin@gmail.com"
         autoComplete="email"
         error={errors.email?.message}
         {...register("email")}

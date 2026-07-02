@@ -1,19 +1,34 @@
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ??
-  "https://tradenexabackend-production.up.railway.app/api/v1";
+const DEFAULT_BACKEND_URL = "https://tradenexabackend-production.up.railway.app";
+
+function normalizeBaseUrl(url: string): string {
+  return url.replace(/\/+$/, "");
+}
+
+/** Railway backend root, e.g. https://tradenexabackend-production.up.railway.app */
+export const BACKEND_URL = normalizeBaseUrl(
+  process.env.NEXT_PUBLIC_BACKEND_URL ??
+    process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ??
+    DEFAULT_BACKEND_URL
+);
+
+/** Full API base used by server proxy routes: {BACKEND_URL}/api/v1 */
+export const API_BASE_URL = `${BACKEND_URL}/api/v1`;
 
 export const API_ENDPOINTS = {
   auth: {
-    login: "/auth/login",
+    login: "/admin/auth/login",
     logout: "/auth/logout",
-    me: "/auth/me",
-    refresh: "/auth/refresh",
-    forgotPassword: "/auth/forgot-password",
+    profile: "/auth/profile",
+    me: "/admin/auth/me",
+    refresh: "/auth/refresh-token",
+    forgotPassword: "/admin/auth/forgot-password",
   },
   categories: {
     list: "/categories",
     detail: (id: number | string) => `/categories/${id}`,
     subcategories: (id: number | string) => `/categories/${id}/subcategories`,
+    subcategory: (categoryId: number | string, subId: number | string) =>
+      `/categories/${categoryId}/subcategories/${subId}`,
   },
   products: {
     list: "/products",

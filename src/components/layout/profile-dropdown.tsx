@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ROLE_COLORS, ROLE_LABELS } from "@/constants/roles";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/utils/cn";
-import { ChevronDown, LogOut, Settings, User } from "lucide-react";
+import { ChevronDown, LogOut } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export function ProfileDropdown() {
@@ -64,24 +64,9 @@ export function ProfileDropdown() {
             </Badge>
           </div>
 
-          <button
-            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-            onClick={() => setOpen(false)}
-          >
-            <User className="h-4 w-4" />
-            Profile
-          </button>
-          <button
-            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-            onClick={() => setOpen(false)}
-          >
-            <Settings className="h-4 w-4" />
-            Settings
-          </button>
-          <div className="my-1 border-t border-border" />
           <Button
             variant="ghost"
-            className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+            className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 mt-2"
             onClick={() => {
               setOpen(false);
               logout();

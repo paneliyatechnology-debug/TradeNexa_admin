@@ -9,11 +9,19 @@ import { FileUpload } from "@/components/ui/file-upload";
 import { Input } from "@/components/ui/input";
 import { createCategorySchema, type CreateCategoryFormData } from "@/utils/validators";
 
+export interface CategoryFormInitialValues {
+  name: string;
+  is_active: boolean;
+  iconUrl?: string | null;
+  imageUrl?: string | null;
+}
+
 interface CreateCategoryFormProps {
   submitLabel: string;
   onSubmit: (data: CreateCategoryFormData) => Promise<void>;
   onCancel: () => void;
   formKey?: string;
+  initialValues?: CategoryFormInitialValues;
 }
 
 export function CreateCategoryForm({
@@ -21,31 +29,41 @@ export function CreateCategoryForm({
   onSubmit,
   onCancel,
   formKey,
+  initialValues,
 }: CreateCategoryFormProps) {
   const {
     register,
     handleSubmit,
     reset,
     control,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<CreateCategoryFormData>({
     resolver: zodResolver(createCategorySchema),
     defaultValues: {
-      name: "",
+      name: initialValues?.name ?? "",
       icon: null,
       image: null,
-      is_active: true,
+      clear_icon: false,
+      clear_image: false,
+      is_active: initialValues?.is_active ?? true,
     },
   });
 
+  const clearIcon = watch("clear_icon");
+  const clearImage = watch("clear_image");
+
   useEffect(() => {
     reset({
-      name: "",
+      name: initialValues?.name ?? "",
       icon: null,
       image: null,
-      is_active: true,
+      clear_icon: false,
+      clear_image: false,
+      is_active: initialValues?.is_active ?? true,
     });
-  }, [formKey, reset]);
+  }, [formKey, initialValues, reset]);
 
   return (
     <form
@@ -72,7 +90,14 @@ export function CreateCategoryForm({
               label="Icon"
               variant="compact"
               value={field.value ?? null}
-              onChange={field.onChange}
+              existingUrl={clearIcon ? null : initialValues?.iconUrl}
+              onChange={(file) => {
+                field.onChange(file);
+                if (file) {
+                  setValue("clear_icon", false);
+                }
+              }}
+              onRemoveExisting={() => setValue("clear_icon", true)}
               error={errors.icon?.message}
               formats="PNG, JPG, WEBP, SVG"
               accept="image/png,image/jpeg,image/webp,image/svg+xml"
@@ -88,7 +113,14 @@ export function CreateCategoryForm({
               label="Image"
               variant="compact"
               value={field.value ?? null}
-              onChange={field.onChange}
+              existingUrl={clearImage ? null : initialValues?.imageUrl}
+              onChange={(file) => {
+                field.onChange(file);
+                if (file) {
+                  setValue("clear_image", false);
+                }
+              }}
+              onRemoveExisting={() => setValue("clear_image", true)}
               error={errors.image?.message}
               formats="PNG, JPG, WEBP"
               accept="image/png,image/jpeg,image/webp"

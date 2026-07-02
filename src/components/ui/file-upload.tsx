@@ -1,14 +1,16 @@
 "use client";
 
 import { cn } from "@/utils/cn";
+import { resolveMediaPreviewUrl, resolveMediaUrl } from "@/utils/media-url";
 import { ImagePlus, Upload, X } from "lucide-react";
-import Image from "next/image";
 import { useEffect, useId, useRef, useState } from "react";
 
 interface FileUploadProps {
   label: string;
   value?: File | null;
   onChange: (file: File | null) => void;
+  existingUrl?: string | null;
+  onRemoveExisting?: () => void;
   accept?: string;
   formats?: string;
   hint?: string;
@@ -20,6 +22,8 @@ export function FileUpload({
   label,
   value = null,
   onChange,
+  existingUrl = null,
+  onRemoveExisting,
   accept = "image/*",
   formats = "PNG, JPG, WEBP",
   hint,
@@ -29,8 +33,20 @@ export function FileUpload({
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [dismissedExisting, setDismissedExisting] = useState(false);
+  const [previewError, setPreviewError] = useState(false);
+  const [existingPreviewSrc, setExistingPreviewSrc] = useState<string | null>(null);
   const isCompact = variant === "compact";
   const boxHeight = isCompact ? "h-32" : "h-40";
+
+  const directExistingUrl = resolveMediaUrl(existingUrl);
+  const proxyExistingUrl = resolveMediaPreviewUrl(existingUrl);
+
+  useEffect(() => {
+    setDismissedExisting(false);
+    setPreviewError(false);
+    setExistingPreviewSrc(directExistingUrl);
+  }, [existingUrl, directExistingUrl]);
 
   useEffect(() => {
     if (!value) {
@@ -40,11 +56,16 @@ export function FileUpload({
 
     const objectUrl = URL.createObjectURL(value);
     setPreviewUrl(objectUrl);
+    setPreviewError(false);
 
     return () => {
       URL.revokeObjectURL(objectUrl);
     };
   }, [value]);
+
+  const resolvedExistingUrl = existingPreviewSrc;
+  const displayUrl =
+    previewUrl ?? (dismissedExisting ? null : resolvedExistingUrl) ?? null;
 
   const openFilePicker = () => {
     inputRef.current?.click();
@@ -52,14 +73,30 @@ export function FileUpload({
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
+    if (file) {
+      setDismissedExisting(false);
+    }
     onChange(file);
   };
 
   const handleRemove = (event: React.MouseEvent) => {
     event.stopPropagation();
-    onChange(null);
-    if (inputRef.current) {
-      inputRef.current.value = "";
+
+    if (value) {
+      onChange(null);
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
+      return;
+    }
+
+    if (existingUrl) {
+      setDismissedExisting(true);
+      onRemoveExisting?.();
+      onChange(null);
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
     }
   };
 
@@ -84,26 +121,41 @@ export function FileUpload({
           boxHeight,
           previewUrl
             ? "border-border"
-            : "border-dashed border-border hover:border-primary/40 hover:bg-primary/5",
+            : displayUrl
+              ? "border-border"
+              : "border-dashed border-border hover:border-primary/40 hover:bg-primary/5",
           error && "border-destructive"
         )}
       >
-        {previewUrl ? (
+        {displayUrl && !previewError ? (
           <div className="group relative h-full w-full">
             <button
               type="button"
               onClick={openFilePicker}
-              className="relative h-full w-full cursor-pointer"
+              className="relative block h-full w-full cursor-pointer overflow-hidden"
               aria-label={`Change ${label}`}
             >
-              <Image
-                src={previewUrl}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={displayUrl}
                 alt={`${label} preview`}
-                fill
-                unoptimized
-                className="object-contain p-3 pb-10"
+                className="h-full w-full object-contain p-3 pb-10"
+                crossOrigin="anonymous"
+                referrerPolicy="no-referrer"
+                onError={() => {
+                  if (
+                    existingPreviewSrc === directExistingUrl &&
+                    proxyExistingUrl &&
+                    directExistingUrl !== proxyExistingUrl
+                  ) {
+                    setExistingPreviewSrc(proxyExistingUrl);
+                    setPreviewError(false);
+                    return;
+                  }
+                  setPreviewError(true);
+                }}
               />
-              <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/5" />
+              <div className="pointer-events-none absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/5" />
             </button>
 
             <div className="pointer-events-none absolute right-2 top-2 rounded-lg bg-background/90 px-2 py-1 text-[10px] font-medium text-muted-foreground opacity-0 shadow-sm transition-opacity group-hover:opacity-100">
@@ -120,9 +172,20 @@ export function FileUpload({
             </button>
 
             <div className="pointer-events-none absolute inset-x-0 bottom-0 border-t border-border/80 bg-background/90 px-3 py-2">
-              <p className="truncate text-xs text-muted-foreground">{value?.name}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {value?.name ?? (resolvedExistingUrl ? "Current file" : "")}
+              </p>
             </div>
           </div>
+        ) : displayUrl && previewError ? (
+          <button
+            type="button"
+            onClick={openFilePicker}
+            className="flex h-full w-full flex-col items-center justify-center gap-2 px-4 text-center"
+          >
+            <p className="text-sm font-medium text-muted-foreground">Preview unavailable</p>
+            <p className="text-xs text-muted-foreground">Click to upload a new {label.toLowerCase()}</p>
+          </button>
         ) : (
           <button
             type="button"

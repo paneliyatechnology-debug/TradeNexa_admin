@@ -1,72 +1,136 @@
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
-import { MOCK_USERS } from "@/constants/mock-users";
-import type { AuthResponse, LoginCredentials } from "@/types/auth";
+import type { ApiResponse } from "@/types/api";
+import type {
+  BackendLoginData,
+  BackendProfile,
+  BackendRefreshTokenData,
+} from "@/types/backend-auth";
+import type { AuthResponse, LoginCredentials, User } from "@/types/auth";
+import { buildAuthorizationHeader } from "@/utils/auth-header";
+import { mapBackendRole } from "@/utils/map-backend-role";
 
-/**
- * Auth Service — placeholder for backend integration.
- * Replace mock implementation with actual API calls when backend is ready.
- */
+const LOGIN_URL = `${API_BASE_URL}${API_ENDPOINTS.auth.login}`;
+const REFRESH_URL = `${API_BASE_URL}${API_ENDPOINTS.auth.refresh}`;
+const LOGOUT_URL = "/api/auth/logout";
+const PROFILE_URL = `${API_BASE_URL}${API_ENDPOINTS.auth.profile}`;
+
+async function publicApiPost<T>(url: string, body: unknown): Promise<ApiResponse<T>> {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+
+  let json: ApiResponse<T>;
+
+  try {
+    json = (await response.json()) as ApiResponse<T>;
+  } catch {
+    throw new Error("Unable to reach the server. Please try again.");
+  }
+
+  if (!response.ok || !json.success) {
+    throw new Error(json.message || "Invalid email or password. Please try again.");
+  }
+
+  return json;
+}
+
+async function authenticatedApiGet<T>(url: string, token: string): Promise<ApiResponse<T>> {
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      ...buildAuthorizationHeader(token),
+    },
+    cache: "no-store",
+  });
+
+  let json: ApiResponse<T>;
+
+  try {
+    json = (await response.json()) as ApiResponse<T>;
+  } catch {
+    throw new Error("Unable to verify your account. Please try again.");
+  }
+
+  if (!response.ok || !json.success) {
+    throw new Error(json.message || "Unable to verify your account. Please try again.");
+  }
+
+  return json;
+}
+
+function mapProfileToUser(profile: BackendProfile): User {
+  return {
+    id: profile.uuid,
+    email: profile.email,
+    name: profile.full_name,
+    role: mapBackendRole(profile.role),
+    avatar: profile.profile_image ?? undefined,
+  };
+}
+
 export const authService = {
   /**
-   * POST {API_BASE_URL}{API_ENDPOINTS.auth.login}
+   * POST {API_BASE_URL}/admin/auth/login
+   * Then GET /auth/profile with Bearer access_token to verify admin role.
    */
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-  // TODO: Replace with actual API call
-  // const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.auth.login}`, {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(credentials),
-  // });
-  // if (!response.ok) throw new Error('Invalid credentials');
-  // return response.json();
+    const json = await publicApiPost<BackendLoginData>(LOGIN_URL, {
+      email: credentials.email,
+      password: credentials.password,
+    });
 
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    const user = MOCK_USERS.find(
-      (u) =>
-        u.email.toLowerCase() === credentials.email.toLowerCase() &&
-        u.password === credentials.password
-    );
-
-    if (!user) {
-      throw new Error("Invalid email or password. Please try again.");
-    }
-
-    const { password, ...userWithoutPassword } = user;
-    void password;
+    const { access_token, refresh_token } = json.data;
+    const profile = await this.getProfile(access_token);
 
     return {
-      user: userWithoutPassword,
-      token: `mock_token_${user.id}_${Date.now()}`,
+      user: mapProfileToUser(profile),
+      token: access_token,
+      refreshToken: refresh_token,
     };
   },
 
-  /**
-   * POST {API_BASE_URL}{API_ENDPOINTS.auth.logout}
-   */
-  async logout(): Promise<void> {
-  // TODO: Replace with actual API call
-  // await fetch(`${API_BASE_URL}${API_ENDPOINTS.auth.logout}`, {
-  //   method: 'POST',
-  //   headers: { Authorization: `Bearer ${token}` },
-  // });
-
-    await new Promise((resolve) => setTimeout(resolve, 300));
+  /** GET {API_BASE_URL}/auth/profile with Bearer token */
+  async getProfile(token: string): Promise<BackendProfile> {
+    const json = await authenticatedApiGet<BackendProfile>(PROFILE_URL, token);
+    return json.data;
   },
 
-  /**
-   * GET {API_BASE_URL}{API_ENDPOINTS.auth.me}
-   */
-  async getCurrentUser(): Promise<AuthResponse["user"]> {
-  // TODO: Replace with actual API call
-  // const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.auth.me}`, {
-  //   headers: { Authorization: `Bearer ${token}` },
-  // });
-  // return response.json();
+  /** Validate stored session and return updated user from profile. */
+  async validateSession(token: string): Promise<User> {
+    const profile = await this.getProfile(token);
+    return mapProfileToUser(profile);
+  },
 
-    throw new Error("Not implemented — use stored session for mock auth");
+  async refreshToken(refreshToken: string): Promise<{ token: string; refreshToken: string }> {
+    const json = await publicApiPost<BackendRefreshTokenData>(REFRESH_URL, {
+      refresh_token: refreshToken,
+    });
+
+    return {
+      token: json.data.access_token,
+      refreshToken: json.data.refresh_token,
+    };
+  },
+
+  async logout(token: string, refreshToken: string): Promise<void> {
+    try {
+      await fetch(LOGOUT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...buildAuthorizationHeader(token),
+        },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+        cache: "no-store",
+      });
+    } catch {
+      // Clear local session even if logout API fails.
+    }
   },
 };
 
-// Export for reference when integrating
 export { API_BASE_URL, API_ENDPOINTS };

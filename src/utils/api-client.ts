@@ -1,5 +1,10 @@
 import type { ApiResponse } from "@/types/api";
-import { getAuthToken } from "@/utils/auth-token";
+import {
+  getAuthToken,
+  tryRefreshAccessToken,
+} from "@/lib/auth-session";
+import { authService } from "@/services/auth.service";
+import { buildAuthorizationHeader } from "@/utils/auth-header";
 
 export class ApiError extends Error {
   constructor(
@@ -9,6 +14,11 @@ export class ApiError extends Error {
     super(message);
     this.name = "ApiError";
   }
+}
+
+interface ApiRequestOptions {
+  /** When true, throws if no access token is available. Defaults to true. */
+  requireAuth?: boolean;
 }
 
 function buildQuery(params?: Record<string, string | number | boolean | undefined>) {
@@ -23,9 +33,17 @@ function buildQuery(params?: Record<string, string | number | boolean | undefine
   return query ? `?${query}` : "";
 }
 
-function buildAuthHeaders(token?: string | null): Record<string, string> {
-  const resolvedToken = token ?? getAuthToken();
-  return resolvedToken ? { Authorization: resolvedToken } : {};
+function buildAuthHeaders(token: string | null): Record<string, string> {
+  return buildAuthorizationHeader(token);
+}
+
+async function resolveAccessToken(requireAuth: boolean): Promise<string | null> {
+  const token = getAuthToken();
+  if (requireAuth && !token) {
+    throw new ApiError("You must be logged in to perform this action.", 401);
+  }
+
+  return token;
 }
 
 async function parseApiResponse<T>(response: Response): Promise<T> {
@@ -48,35 +66,129 @@ async function parseApiResponse<T>(response: Response): Promise<T> {
   return json.data;
 }
 
+async function fetchWithAuthRetry(
+  url: string,
+  init: RequestInit,
+  options: ApiRequestOptions = {}
+): Promise<Response> {
+  const requireAuth = options.requireAuth ?? true;
+
+  const send = async (token: string | null) =>
+    fetch(url, {
+      ...init,
+      cache: "no-store",
+      headers: {
+        ...init.headers,
+        ...buildAuthHeaders(token),
+      },
+    });
+
+  let token = await resolveAccessToken(requireAuth);
+  let response = await send(token);
+
+  if (response.status === 401 && requireAuth) {
+    const newToken = await tryRefreshAccessToken((refreshToken) =>
+      authService.refreshToken(refreshToken)
+    );
+
+    if (newToken) {
+      token = newToken;
+      response = await send(newToken);
+    }
+  }
+
+  if (response.status === 401) {
+    throw new ApiError("Session expired. Please log in again.", 401);
+  }
+
+  return response;
+}
+
 export async function apiClientGet<T>(
   path: string,
   params?: Record<string, string | number | boolean | undefined>,
-  token?: string | null
+  options?: ApiRequestOptions
 ): Promise<T> {
   const url = `${path}${buildQuery(params)}`;
-  const response = await fetch(url, {
-    cache: "no-store",
-    headers: buildAuthHeaders(token),
-  });
+  const response = await fetchWithAuthRetry(url, { method: "GET" }, options);
   return parseApiResponse<T>(response);
 }
 
 export async function apiClientPost<T>(
   path: string,
   body: unknown,
-  token?: string | null
+  options?: ApiRequestOptions
 ): Promise<T> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...buildAuthHeaders(token),
-  };
+  const response = await fetchWithAuthRetry(
+    path,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+    options
+  );
 
-  const response = await fetch(path, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-    cache: "no-store",
-  });
+  return parseApiResponse<T>(response);
+}
+
+export async function apiClientPut<T>(
+  path: string,
+  body: unknown,
+  options?: ApiRequestOptions
+): Promise<T> {
+  const response = await fetchWithAuthRetry(
+    path,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+    options
+  );
+
+  return parseApiResponse<T>(response);
+}
+
+export async function apiClientPatch<T>(
+  path: string,
+  body: unknown,
+  options?: ApiRequestOptions
+): Promise<T> {
+  const response = await fetchWithAuthRetry(
+    path,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+    options
+  );
+
+  return parseApiResponse<T>(response);
+}
+
+export async function apiClientDelete<T>(
+  path: string,
+  options?: ApiRequestOptions
+): Promise<T> {
+  const response = await fetchWithAuthRetry(path, { method: "DELETE" }, options);
+  return parseApiResponse<T>(response);
+}
+
+export async function apiClientPutFormData<T>(
+  path: string,
+  formData: FormData,
+  options?: ApiRequestOptions
+): Promise<T> {
+  const response = await fetchWithAuthRetry(
+    path,
+    {
+      method: "PUT",
+      body: formData,
+    },
+    options
+  );
 
   return parseApiResponse<T>(response);
 }
@@ -84,14 +196,16 @@ export async function apiClientPost<T>(
 export async function apiClientPostFormData<T>(
   path: string,
   formData: FormData,
-  token?: string | null
+  options?: ApiRequestOptions
 ): Promise<T> {
-  const response = await fetch(path, {
-    method: "POST",
-    headers: buildAuthHeaders(token),
-    body: formData,
-    cache: "no-store",
-  });
+  const response = await fetchWithAuthRetry(
+    path,
+    {
+      method: "POST",
+      body: formData,
+    },
+    options
+  );
 
   return parseApiResponse<T>(response);
 }

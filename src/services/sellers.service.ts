@@ -1,16 +1,13 @@
-import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
-
+/** Uses authenticated apiClientGet — add `/api/sellers` proxy route when implementing. */
 export const sellersService = {
   async getAll() {
-    // GET `${API_BASE_URL}${API_ENDPOINTS.sellers.list}`
+    // return apiClientGet("/api/sellers");
     throw new Error("Not implemented");
   },
 
   async getById(id: string) {
-    // GET `${API_BASE_URL}${API_ENDPOINTS.sellers.detail(id)}`
+    // return apiClientGet(`/api/sellers/${id}`);
     void id;
     throw new Error("Not implemented");
   },
 };
-
-export { API_BASE_URL, API_ENDPOINTS };

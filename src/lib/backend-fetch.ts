@@ -38,6 +38,13 @@ export async function backendPost(path: string, request: Request) {
     headers.Authorization = authHeader;
   }
 
+  const response = await fetch(url, {
+    method: "POST",
+    headers,
+    body,
+    cache: "no-store",
+  });
+
   const data = await response.json();
   return Response.json(data, { status: response.status });
 }

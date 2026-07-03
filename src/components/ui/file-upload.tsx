@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/utils/cn";
-import { resolveMediaPreviewUrl, resolveMediaUrl } from "@/utils/media-url";
+import { resolveMediaDisplayUrl, resolveMediaPreviewUrl, resolveMediaUrl } from "@/utils/media-url";
 import { ImagePlus, Upload, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 
@@ -43,12 +43,13 @@ export function FileUpload({
 
   const directExistingUrl = resolveMediaUrl(existingUrl);
   const proxyExistingUrl = resolveMediaPreviewUrl(existingUrl);
+  const displayExistingUrl = resolveMediaDisplayUrl(existingUrl);
 
   useEffect(() => {
     setDismissedExisting(false);
     setPreviewError(false);
-    setExistingPreviewSrc(directExistingUrl);
-  }, [existingUrl, directExistingUrl]);
+    setExistingPreviewSrc(displayExistingUrl);
+  }, [existingUrl, displayExistingUrl]);
 
   useEffect(() => {
     if (!value) {
@@ -147,11 +148,20 @@ export function FileUpload({
                 referrerPolicy="no-referrer"
                 onError={() => {
                   if (
-                    existingPreviewSrc === directExistingUrl &&
+                    existingPreviewSrc === displayExistingUrl &&
                     proxyExistingUrl &&
-                    directExistingUrl !== proxyExistingUrl
+                    displayExistingUrl !== proxyExistingUrl
                   ) {
                     setExistingPreviewSrc(proxyExistingUrl);
+                    setPreviewError(false);
+                    return;
+                  }
+                  if (
+                    existingPreviewSrc === displayExistingUrl &&
+                    directExistingUrl &&
+                    displayExistingUrl !== directExistingUrl
+                  ) {
+                    setExistingPreviewSrc(directExistingUrl);
                     setPreviewError(false);
                     return;
                   }

@@ -15,23 +15,51 @@ export function resolveMediaUrl(url: string | null | undefined): string | null {
   return `${BACKEND_URL}${path}`;
 }
 
-/** Same-origin proxy URL for <img> previews (Railway CORP blocks direct embed from localhost). */
+function toProxyPath(mediaUrl: string): string | null {
+  try {
+    const parsed = new URL(mediaUrl);
+
+    if (parsed.pathname.startsWith("/media/")) {
+      const mediaPath = parsed.pathname.replace(/^\/media\/?/, "");
+      return `/api/media/${mediaPath}`;
+    }
+
+    if (parsed.pathname.startsWith("/uploads/")) {
+      const uploadPath = parsed.pathname.replace(/^\/uploads\/?/, "");
+      return `/api/uploads/${uploadPath}`;
+    }
+
+    return null;
+  } catch {
+    if (mediaUrl.startsWith("/media/")) {
+      return `/api${mediaUrl}`;
+    }
+
+    if (mediaUrl.startsWith("/uploads/")) {
+      return `/api${mediaUrl}`;
+    }
+
+    return null;
+  }
+}
+
+/** Same-origin proxy URL for <img> previews (avoids Railway CORS/CORP from Vercel/localhost). */
 export function resolveMediaPreviewUrl(url: string | null | undefined): string | null {
   const mediaUrl = resolveMediaUrl(url);
   if (!mediaUrl) return null;
 
-  try {
-    const parsed = new URL(mediaUrl);
-    if (!parsed.pathname.startsWith("/uploads/")) {
-      return mediaUrl;
-    }
+  return toProxyPath(mediaUrl) ?? mediaUrl;
+}
 
-    const uploadPath = parsed.pathname.replace(/^\/uploads\/?/, "");
-    return `/api/uploads/${uploadPath}`;
-  } catch {
-    if (mediaUrl.startsWith("/uploads/")) {
-      return `/api${mediaUrl}`;
-    }
-    return mediaUrl;
+/** Prefer same-origin proxy for embedded images whenever available. */
+export function resolveMediaDisplayUrl(url: string | null | undefined): string | null {
+  const mediaUrl = resolveMediaUrl(url);
+  if (!mediaUrl) return null;
+
+  const proxyPath = toProxyPath(mediaUrl);
+  if (proxyPath) {
+    return proxyPath;
   }
+
+  return mediaUrl;
 }

@@ -19,7 +19,7 @@ import type { Category, Subcategory, CreateCategoryInput, UpdateCategoryInput } 
 import { PRODUCT_SORT_OPTIONS, type Product, type ProductSortBy } from "@/types/product";
 import type { CreateCategoryFormData } from "@/utils/validators";
 import { cn } from "@/utils/cn";
-import { resolveMediaPreviewUrl, resolveMediaUrl } from "@/utils/media-url";
+import { resolveMediaDisplayUrl, resolveMediaPreviewUrl, resolveMediaUrl } from "@/utils/media-url";
 import {
   ChevronRight,
   FolderTree,
@@ -886,15 +886,15 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
 }
 
 function CategoryIcon({ icon, name }: { icon: string | null; name: string }) {
-  const directUrl = resolveMediaUrl(icon);
-  const proxyUrl = resolveMediaPreviewUrl(icon);
-  const [src, setSrc] = useState(directUrl);
+  const displayUrl = resolveMediaDisplayUrl(icon);
+  const fallbackUrl = resolveMediaPreviewUrl(icon);
+  const [src, setSrc] = useState(displayUrl);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    setSrc(directUrl);
+    setSrc(resolveMediaDisplayUrl(icon));
     setFailed(false);
-  }, [icon, directUrl]);
+  }, [icon]);
 
   if (!icon || failed || !src) {
     return (
@@ -912,8 +912,8 @@ function CategoryIcon({ icon, name }: { icon: string | null; name: string }) {
       crossOrigin="anonymous"
       referrerPolicy="no-referrer"
       onError={() => {
-        if (src === directUrl && proxyUrl && proxyUrl !== directUrl) {
-          setSrc(proxyUrl);
+        if (fallbackUrl && src !== fallbackUrl) {
+          setSrc(fallbackUrl);
           return;
         }
         setFailed(true);
@@ -923,15 +923,15 @@ function CategoryIcon({ icon, name }: { icon: string | null; name: string }) {
 }
 
 function SubcategoryIcon({ icon, name }: { icon: string | null; name: string }) {
-  const directUrl = resolveMediaUrl(icon);
-  const proxyUrl = resolveMediaPreviewUrl(icon);
-  const [src, setSrc] = useState(directUrl);
+  const displayUrl = resolveMediaDisplayUrl(icon);
+  const fallbackUrl = resolveMediaPreviewUrl(icon);
+  const [src, setSrc] = useState(displayUrl);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    setSrc(directUrl);
+    setSrc(resolveMediaDisplayUrl(icon));
     setFailed(false);
-  }, [icon, directUrl]);
+  }, [icon]);
 
   if (!icon || failed || !src) {
     return (
@@ -949,8 +949,8 @@ function SubcategoryIcon({ icon, name }: { icon: string | null; name: string }) 
       crossOrigin="anonymous"
       referrerPolicy="no-referrer"
       onError={() => {
-        if (src === directUrl && proxyUrl && proxyUrl !== directUrl) {
-          setSrc(proxyUrl);
+        if (fallbackUrl && src !== fallbackUrl) {
+          setSrc(fallbackUrl);
           return;
         }
         setFailed(true);

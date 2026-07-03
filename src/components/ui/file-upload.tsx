@@ -7,6 +7,7 @@ import { useEffect, useId, useRef, useState } from "react";
 
 interface FileUploadProps {
   label: string;
+  required?: boolean;
   value?: File | null;
   onChange: (file: File | null) => void;
   existingUrl?: string | null;
@@ -20,6 +21,7 @@ interface FileUploadProps {
 
 export function FileUpload({
   label,
+  required = false,
   value = null,
   onChange,
   existingUrl = null,
@@ -104,6 +106,7 @@ export function FileUpload({
     <div className="space-y-1.5">
       <label htmlFor={inputId} className="block text-sm font-medium text-foreground">
         {label}
+        {required && <span className="text-destructive"> *</span>}
       </label>
 
       <input

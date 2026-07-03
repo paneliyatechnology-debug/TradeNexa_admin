@@ -17,8 +17,10 @@ import {
   clearAuth,
   emitAuthChange,
   getAuthSnapshot,
+  isRefreshTokenExpired,
   persistAuth,
   subscribeAuth,
+  tryRefreshAccessToken,
 } from "@/lib/auth-session";
 import { authService } from "@/services/auth.service";
 import type { LoginCredentials, User, UserRole } from "@/types/auth";
@@ -73,11 +75,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        const validatedUser = await authService.validateSession(snapshot.token);
+        if (snapshot.refreshToken) {
+          if (isRefreshTokenExpired()) {
+            clearAuth();
+            emitAuthChange();
+            toast.error("Your session has expired after 7 days. Please log in again.");
+            router.replace(ROUTES.login);
+            setSessionReady(true);
+            return;
+          }
+
+          const refreshFn = (refreshToken: string) => authService.refreshToken(refreshToken);
+          const newToken = await tryRefreshAccessToken(refreshFn);
+          if (cancelled) return;
+
+          if (!newToken) {
+            toast.error("Your session has expired. Please log in again.");
+            router.replace(ROUTES.login);
+            setSessionReady(true);
+            return;
+          }
+        }
+
+        const currentSnapshot = getAuthSnapshot();
+        const accessToken = currentSnapshot?.token ?? snapshot.token;
+        const validatedUser = await authService.validateSession(accessToken);
         if (cancelled) return;
 
         persistAuth({
-          ...snapshot,
+          ...(currentSnapshot ?? snapshot),
           user: validatedUser,
         });
         emitAuthChange();

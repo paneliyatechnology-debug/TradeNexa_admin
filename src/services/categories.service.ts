@@ -1,5 +1,5 @@
 import { CLIENT_API_ROUTES } from "@/config/api";
-import type { PaginatedData, ListParams } from "@/types/api";
+import type { CategoryListParams, PaginatedData, SubcategoryListParams } from "@/types/api";
 import type {
   Category,
   CategoryDetail,
@@ -42,7 +42,7 @@ function buildCategoryFormData(
 
 export const categoriesService = {
   async getCategories(
-    params: ListParams = {}
+    params: CategoryListParams = {}
   ): Promise<PaginatedData<Category>> {
     return apiClientGet<PaginatedData<Category>>(
       CLIENT_API_ROUTES.categories.list,
@@ -50,6 +50,9 @@ export const categoriesService = {
         page: params.page ?? 1,
         limit: params.limit ?? 10,
         is_active: params.is_active,
+        search: params.search || undefined,
+        sort_by: params.sort_by,
+        sort_order: params.sort_order,
       }
     );
   },
@@ -57,6 +60,23 @@ export const categoriesService = {
   async getCategory(categoryId: number): Promise<CategoryDetail> {
     return apiClientGet<CategoryDetail>(
       CLIENT_API_ROUTES.categories.detail(categoryId)
+    );
+  },
+
+  async getSubcategories(
+    categoryId: number,
+    params: SubcategoryListParams = {}
+  ): Promise<PaginatedData<Subcategory>> {
+    return apiClientGet<PaginatedData<Subcategory>>(
+      CLIENT_API_ROUTES.categories.subcategories(categoryId),
+      {
+        page: params.page ?? 1,
+        limit: params.limit ?? 10,
+        is_active: params.is_active,
+        search: params.search || undefined,
+        sort_by: params.sort_by,
+        sort_order: params.sort_order,
+      }
     );
   },
 

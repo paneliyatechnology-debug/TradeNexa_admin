@@ -21,3 +21,23 @@ export interface ListParams {
   limit?: number;
   is_active?: boolean;
 }
+
+export type SortOrder = "asc" | "desc";
+
+export interface CategoryListParams extends ListParams {
+  search?: string;
+  sort_by?: "name";
+  sort_order?: SortOrder;
+}
+
+export type SubcategoryListParams = CategoryListParams;
+
+import type { ProductSortBy } from "@/types/product";
+
+export interface ProductListParams extends ListParams {
+  search?: string;
+  sort_by?: ProductSortBy;
+  sort_order?: SortOrder;
+  subcategory_id?: number;
+  category_id?: number;
+}

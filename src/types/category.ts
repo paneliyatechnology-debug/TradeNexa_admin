@@ -55,7 +55,11 @@ export interface UpdateCategoryInput {
   name: string;
   icon?: File | null;
   image?: File | null;
+  clear_icon?: boolean;
+  clear_image?: boolean;
   is_active: boolean;
 }
 
-export interface CreateCategoryInput extends UpdateCategoryInput {}
+export interface CreateCategoryInput extends UpdateCategoryInput {
+  icon: File;
+}

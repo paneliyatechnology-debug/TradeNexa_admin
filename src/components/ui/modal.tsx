@@ -13,6 +13,7 @@ interface ModalProps {
   description?: string;
   icon?: ReactNode;
   children?: ReactNode;
+  footer?: ReactNode;
   className?: string;
 }
 
@@ -23,6 +24,7 @@ export function Modal({
   description,
   icon,
   children,
+  footer,
   className,
 }: ModalProps) {
   const [mounted, setMounted] = useState(false);
@@ -90,7 +92,20 @@ export function Modal({
         </div>
 
         {children && (
-          <div className="overflow-y-auto px-5 py-5 sm:px-6">{children}</div>
+          <div
+            className={cn(
+              "flex min-h-0 flex-1 flex-col overflow-hidden",
+              footer ? "overflow-y-auto px-5 py-5 sm:px-6" : ""
+            )}
+          >
+            {children}
+          </div>
+        )}
+
+        {footer && (
+          <div className="shrink-0 border-t border-border bg-card px-5 py-4 sm:px-6">
+            {footer}
+          </div>
         )}
       </div>
     </div>,

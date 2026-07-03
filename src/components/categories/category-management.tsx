@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { CreateCategoryForm } from "@/components/categories/create-category-form";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
@@ -10,15 +10,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Modal } from "@/components/ui/modal";
 import { Pagination } from "@/components/ui/pagination";
-import { DashboardSkeleton } from "@/components/ui/skeleton";
+import { DashboardSkeleton, Skeleton } from "@/components/ui/skeleton";
 import { Loader } from "@/components/ui/loader";
 import { categoriesService } from "@/services/categories.service";
 import { productsService } from "@/services/products.service";
-import type { PaginatedData } from "@/types/api";
-import type { Category, Subcategory } from "@/types/category";
-import type { Product } from "@/types/product";
+import type { PaginatedData, SortOrder } from "@/types/api";
+import type { Category, Subcategory, CreateCategoryInput, UpdateCategoryInput } from "@/types/category";
+import { PRODUCT_SORT_OPTIONS, type Product, type ProductSortBy } from "@/types/product";
 import type { CreateCategoryFormData } from "@/utils/validators";
 import { cn } from "@/utils/cn";
+import { resolveMediaPreviewUrl, resolveMediaUrl } from "@/utils/media-url";
 import {
   ChevronRight,
   FolderTree,
@@ -26,6 +27,7 @@ import {
   Package,
   Pencil,
   Plus,
+  Search,
   Trash2,
 } from "lucide-react";
 
@@ -56,10 +58,25 @@ const defaultPagination = {
 
 export function CategoryManagement({ title, basePath }: CategoryManagementProps) {
   const [view, setView] = useState<View>("categories");
-  const [loading, setLoading] = useState(true);
+  const [listLoading, setListLoading] = useState(true);
+  const [hasLoadedCategories, setHasLoadedCategories] = useState(false);
+  const [hasLoadedSubcategories, setHasLoadedSubcategories] = useState(false);
+  const [hasLoadedProducts, setHasLoadedProducts] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>("active");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [subSearchInput, setSubSearchInput] = useState("");
+  const [subSearch, setSubSearch] = useState("");
+  const [sortBy, setSortBy] = useState<"name">("name");
+  const [subSortBy, setSubSortBy] = useState<"name">("name");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+  const [subSortOrder, setSubSortOrder] = useState<SortOrder>("asc");
+  const [productSearchInput, setProductSearchInput] = useState("");
+  const [productSearch, setProductSearch] = useState("");
+  const [productSortBy, setProductSortBy] = useState<ProductSortBy>("name");
+  const [productSortOrder, setProductSortOrder] = useState<SortOrder>("asc");
   const [createCategoryOpen, setCreateCategoryOpen] = useState(false);
   const [createSubcategoryOpen, setCreateSubcategoryOpen] = useState(false);
   const [editCategory, setEditCategory] = useState<Category | null>(null);
@@ -72,7 +89,10 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
     results: [],
     pagination: defaultPagination,
   });
-  const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
+  const [subcategories, setSubcategories] = useState<PaginatedData<Subcategory>>({
+    results: [],
+    pagination: defaultPagination,
+  });
   const [products, setProducts] = useState<PaginatedData<Product>>({
     results: [],
     pagination: defaultPagination,
@@ -84,84 +104,199 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
   );
 
   const fetchCategories = useCallback(
-    async (pageNum: number, filter: ActiveFilter) => {
-      setLoading(true);
+    async (
+      pageNum: number,
+      filter: ActiveFilter,
+      searchQuery: string,
+      sortByValue: "name",
+      sortOrderValue: SortOrder
+    ) => {
+      setListLoading(true);
       try {
         const data = await categoriesService.getCategories({
           page: pageNum,
           limit,
           is_active: toIsActiveParam(filter),
+          search: searchQuery || undefined,
+          sort_by: sortByValue,
+          sort_order: sortOrderValue,
         });
         setCategories(data);
+        setHasLoadedCategories(true);
       } catch (error) {
         toast.error(
           error instanceof Error ? error.message : "Failed to load categories"
         );
       } finally {
-        setLoading(false);
+        setListLoading(false);
       }
     },
     [limit]
   );
 
-  const fetchCategoryDetail = useCallback(async (categoryId: number) => {
-    setLoading(true);
-    try {
-      const detail = await categoriesService.getCategory(categoryId);
-      setSelectedCategory({
-        id: detail.id,
-        name: detail.name,
-        icon: detail.icon,
-        image: detail.image,
-        slug: detail.slug,
-        is_active: detail.is_active,
-        subcategory_count: detail.subcategories.length,
-        product_count: 0,
-      });
-      setSubcategories(detail.subcategories);
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to load category details"
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const fetchSubcategories = useCallback(
+    async (
+      categoryId: number,
+      pageNum: number,
+      filter: ActiveFilter,
+      searchQuery: string,
+      sortByValue: "name",
+      sortOrderValue: SortOrder
+    ) => {
+      setListLoading(true);
+      try {
+        const data = await categoriesService.getSubcategories(categoryId, {
+          page: pageNum,
+          limit,
+          is_active: toIsActiveParam(filter),
+          search: searchQuery || undefined,
+          sort_by: sortByValue,
+          sort_order: sortOrderValue,
+        });
+        setSubcategories(data);
+        setHasLoadedSubcategories(true);
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Failed to load subcategories"
+        );
+      } finally {
+        setListLoading(false);
+      }
+    },
+    [limit]
+  );
 
   const fetchProducts = useCallback(
-    async (subcategoryId: number, pageNum: number) => {
-      setLoading(true);
+    async (
+      subcategoryId: number,
+      pageNum: number,
+      searchQuery: string,
+      sortByValue: ProductSortBy,
+      sortOrderValue: SortOrder
+    ) => {
+      setListLoading(true);
       try {
         const data = await productsService.getProducts({
           page: pageNum,
           limit,
           subcategory_id: subcategoryId,
+          search: searchQuery || undefined,
+          sort_by: sortByValue,
+          sort_order: sortOrderValue,
         });
         setProducts(data);
+        setHasLoadedProducts(true);
       } catch (error) {
         toast.error(
           error instanceof Error ? error.message : "Failed to load products"
         );
       } finally {
-        setLoading(false);
+        setListLoading(false);
       }
     },
     [limit]
   );
 
+  const prevSearchRef = useRef("");
+  const prevSubSearchRef = useRef("");
+  const prevProductSearchRef = useRef("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const trimmed = searchInput.trim();
+      if (prevSearchRef.current === trimmed) return;
+
+      prevSearchRef.current = trimmed;
+      setSearch(trimmed);
+      setPage(1);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const trimmed = subSearchInput.trim();
+      if (prevSubSearchRef.current === trimmed) return;
+
+      prevSubSearchRef.current = trimmed;
+      setSubSearch(trimmed);
+      setPage(1);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [subSearchInput]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const trimmed = productSearchInput.trim();
+      if (prevProductSearchRef.current === trimmed) return;
+
+      prevProductSearchRef.current = trimmed;
+      setProductSearch(trimmed);
+      setPage(1);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [productSearchInput]);
+
   useEffect(() => {
     if (view === "categories") {
-      fetchCategories(page, activeFilter);
+      fetchCategories(page, activeFilter, search, sortBy, sortOrder);
     }
-  }, [view, page, activeFilter, fetchCategories]);
+  }, [view, page, activeFilter, search, sortBy, sortOrder, fetchCategories]);
 
-  const filteredSubcategories = useMemo(() => {
-    if (activeFilter === "all") return subcategories;
-    if (activeFilter === "active") {
-      return subcategories.filter((subcategory) => subcategory.is_active);
+  useEffect(() => {
+    if (view === "subcategories" && selectedCategory) {
+      fetchSubcategories(
+        selectedCategory.id,
+        page,
+        activeFilter,
+        subSearch,
+        subSortBy,
+        subSortOrder
+      );
     }
-    return subcategories.filter((subcategory) => !subcategory.is_active);
-  }, [subcategories, activeFilter]);
+  }, [
+    view,
+    page,
+    activeFilter,
+    subSearch,
+    subSortBy,
+    subSortOrder,
+    selectedCategory?.id,
+    fetchSubcategories,
+  ]);
+
+  const handleSortByChange = (value: "name") => {
+    setSortBy(value);
+    setPage(1);
+  };
+
+  const handleSortOrderChange = (value: SortOrder) => {
+    setSortOrder(value);
+    setPage(1);
+  };
+
+  const handleSubSortByChange = (value: "name") => {
+    setSubSortBy(value);
+    setPage(1);
+  };
+
+  const handleSubSortOrderChange = (value: SortOrder) => {
+    setSubSortOrder(value);
+    setPage(1);
+  };
+
+  const handleProductSortByChange = (value: ProductSortBy) => {
+    setProductSortBy(value);
+    setPage(1);
+  };
+
+  const handleProductSortOrderChange = (value: SortOrder) => {
+    setProductSortOrder(value);
+    setPage(1);
+  };
 
   const handleActiveFilterChange = (filter: ActiveFilter) => {
     setActiveFilter(filter);
@@ -169,28 +304,53 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
   };
 
   useEffect(() => {
-    if (view === "subcategories" && selectedCategory) {
-      void fetchCategoryDetail(selectedCategory.id);
-    }
-  }, [view, selectedCategory?.id, fetchCategoryDetail]);
-
-  useEffect(() => {
     if (view === "products" && selectedSubcategory) {
-      fetchProducts(selectedSubcategory.id, page);
+      fetchProducts(
+        selectedSubcategory.id,
+        page,
+        productSearch,
+        productSortBy,
+        productSortOrder
+      );
     }
-  }, [view, page, selectedSubcategory, fetchProducts]);
+  }, [
+    view,
+    page,
+    selectedSubcategory,
+    productSearch,
+    productSortBy,
+    productSortOrder,
+    fetchProducts,
+  ]);
+
+  const resetSubcategoryFilters = () => {
+    setSubSearchInput("");
+    setSubSearch("");
+    prevSubSearchRef.current = "";
+    setSubSortBy("name");
+    setSubSortOrder("asc");
+  };
+
+  const resetProductFilters = () => {
+    setProductSearchInput("");
+    setProductSearch("");
+    prevProductSearchRef.current = "";
+    setProductSortBy("name");
+    setProductSortOrder("asc");
+  };
 
   const openCategory = (category: Category) => {
     setSelectedCategory(category);
     setSelectedSubcategory(null);
+    setHasLoadedSubcategories(false);
     setPage(1);
+    resetSubcategoryFilters();
     setView("subcategories");
   };
 
   const openSubcategory = async (subcategory: Subcategory) => {
     if (!selectedCategory) return;
 
-    setLoading(true);
     try {
       const detail = await categoriesService.getSubcategory(
         selectedCategory.id,
@@ -206,14 +366,14 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
         is_active: detail.is_active,
         product_count: subcategory.product_count ?? 0,
       });
+      setHasLoadedProducts(false);
+      resetProductFilters();
       setPage(1);
       setView("products");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to load subcategory details"
       );
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -312,7 +472,20 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
         ? selectedCategory.name
         : title;
 
-  const toCreatePayload = (data: CreateCategoryFormData) => ({
+  const toCreatePayload = (data: CreateCategoryFormData): CreateCategoryInput => {
+    if (!(data.icon instanceof File)) {
+      throw new Error("Icon is required");
+    }
+
+    return {
+      name: data.name.trim(),
+      icon: data.icon,
+      image: data.image ?? null,
+      is_active: data.is_active,
+    };
+  };
+
+  const toUpdatePayload = (data: CreateCategoryFormData): UpdateCategoryInput => ({
     name: data.name.trim(),
     icon: data.icon ?? null,
     image: data.image ?? null,
@@ -327,7 +500,7 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
       toast.success("Category created successfully");
       setCreateCategoryOpen(false);
       setPage(1);
-      await fetchCategories(1, activeFilter);
+      await fetchCategories(1, activeFilter, search, sortBy, sortOrder);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to create category");
     }
@@ -343,7 +516,15 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
       );
       toast.success("Subcategory created successfully");
       setCreateSubcategoryOpen(false);
-      await fetchCategoryDetail(selectedCategory.id);
+      setPage(1);
+      await fetchSubcategories(
+        selectedCategory.id,
+        1,
+        activeFilter,
+        subSearch,
+        subSortBy,
+        subSortOrder
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to create subcategory");
     }
@@ -353,7 +534,7 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
     if (!editCategory) return;
 
     try {
-      await categoriesService.updateCategory(editCategory.id, toCreatePayload(data));
+      await categoriesService.updateCategory(editCategory.id, toUpdatePayload(data));
       toast.success("Category updated successfully");
       setEditCategory(null);
 
@@ -363,7 +544,7 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
         );
       }
 
-      await fetchCategories(page, activeFilter);
+      await fetchCategories(page, activeFilter, search, sortBy, sortOrder);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update category");
     }
@@ -376,7 +557,7 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
       await categoriesService.updateSubcategory(
         selectedCategory.id,
         editSubcategory.id,
-        toCreatePayload(data)
+        toUpdatePayload(data)
       );
       toast.success("Subcategory updated successfully");
       setEditSubcategory(null);
@@ -387,7 +568,14 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
         );
       }
 
-      await fetchCategoryDetail(selectedCategory.id);
+      await fetchSubcategories(
+        selectedCategory.id,
+        page,
+        activeFilter,
+        subSearch,
+        subSortBy,
+        subSortOrder
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update subcategory");
     }
@@ -406,7 +594,7 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
           goToCategories();
         }
 
-        await fetchCategories(page, activeFilter);
+        await fetchCategories(page, activeFilter, search, sortBy, sortOrder);
       } else {
         if (!selectedCategory) return;
 
@@ -420,7 +608,14 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
           goToSubcategories();
         }
 
-        await fetchCategoryDetail(selectedCategory.id);
+        await fetchSubcategories(
+        selectedCategory.id,
+        page,
+        activeFilter,
+        subSearch,
+        subSortBy,
+        subSortOrder
+      );
       }
 
       setDeleteTarget(null);
@@ -438,6 +633,12 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
         ? `Are you sure you want to delete “${deleteTarget.item.name}”? This will remove the subcategory and cannot be undone.`
         : "";
 
+  const showInitialSkeleton =
+    listLoading &&
+    ((view === "categories" && !hasLoadedCategories) ||
+      (view === "subcategories" && !hasLoadedSubcategories) ||
+      (view === "products" && !hasLoadedProducts));
+
   return (
     <div className="space-y-6">
       <div>
@@ -445,14 +646,21 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
         <h1 className="mt-2 text-2xl font-bold tracking-tight">{pageHeading}</h1>
       </div>
 
-      {loading ? (
+      {showInitialSkeleton ? (
         <DashboardSkeleton />
       ) : (
         <>
           {view === "categories" && (
             <CategoriesView
               data={categories}
+              loading={listLoading}
               activeFilter={activeFilter}
+              search={searchInput}
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSearchChange={setSearchInput}
+              onSortByChange={handleSortByChange}
+              onSortOrderChange={handleSortOrderChange}
               onActiveFilterChange={handleActiveFilterChange}
               onSelect={openCategory}
               onEdit={(category) => void openEditCategory(category)}
@@ -464,14 +672,22 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
           {view === "subcategories" && selectedCategory && (
             <SubcategoriesView
               category={selectedCategory}
-              subcategories={filteredSubcategories}
+              data={subcategories}
+              loading={listLoading}
               activeFilter={activeFilter}
+              search={subSearchInput}
+              sortBy={subSortBy}
+              sortOrder={subSortOrder}
+              onSearchChange={setSubSearchInput}
+              onSortByChange={handleSubSortByChange}
+              onSortOrderChange={handleSubSortOrderChange}
               onActiveFilterChange={handleActiveFilterChange}
               onSelect={(subcategory) => void openSubcategory(subcategory)}
               onEdit={(subcategory) => void openEditSubcategory(subcategory)}
               onDelete={(subcategory) =>
                 setDeleteTarget({ type: "subcategory", item: subcategory })
               }
+              onPageChange={setPage}
               onAdd={() => setCreateSubcategoryOpen(true)}
             />
           )}
@@ -479,6 +695,13 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
             <ProductsView
               subcategory={selectedSubcategory}
               data={products}
+              loading={listLoading}
+              search={productSearchInput}
+              sortBy={productSortBy}
+              sortOrder={productSortOrder}
+              onSearchChange={setProductSearchInput}
+              onSortByChange={handleProductSortByChange}
+              onSortOrderChange={handleProductSortOrderChange}
               onPageChange={setPage}
             />
           )}
@@ -533,13 +756,14 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
       >
         {editCategory &&
           (editLoading ? (
-            <div className="flex justify-center py-10">
+            <div className="flex justify-center px-5 py-10 sm:px-6">
               <Loader size="lg" />
             </div>
           ) : (
             <CreateCategoryForm
               key={`edit-category-${editCategory.id}-loaded`}
               formKey={`edit-category-${editCategory.id}-loaded`}
+              mode="edit"
               submitLabel="Save Changes"
               initialValues={{
                 name: editCategory.name,
@@ -563,13 +787,14 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
       >
         {editSubcategory &&
           (editLoading ? (
-            <div className="flex justify-center py-10">
+            <div className="flex justify-center px-5 py-10 sm:px-6">
               <Loader size="lg" />
             </div>
           ) : (
             <CreateCategoryForm
               key={`edit-subcategory-${editSubcategory.id}-loaded`}
               formKey={`edit-subcategory-${editSubcategory.id}-loaded`}
+              mode="edit"
               submitLabel="Save Changes"
               initialValues={{
                 name: editSubcategory.name,
@@ -591,28 +816,29 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
         }
         description={deleteDescription}
         icon={<Trash2 className="h-5 w-5 text-destructive" />}
-      >
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setDeleteTarget(null)}
-            disabled={deleting}
-            className="sm:min-w-24"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            variant="danger"
-            loading={deleting}
-            onClick={() => void handleConfirmDelete()}
-            className="sm:min-w-32"
-          >
-            Delete
-          </Button>
-        </div>
-      </Modal>
+        footer={
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeleteTarget(null)}
+              disabled={deleting}
+              className="sm:min-w-24"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              loading={deleting}
+              onClick={() => void handleConfirmDelete()}
+              className="sm:min-w-32"
+            >
+              Delete
+            </Button>
+          </div>
+        }
+      />
     </div>
   );
 }
@@ -659,9 +885,206 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
   );
 }
 
+function CategoryIcon({ icon, name }: { icon: string | null; name: string }) {
+  const directUrl = resolveMediaUrl(icon);
+  const proxyUrl = resolveMediaPreviewUrl(icon);
+  const [src, setSrc] = useState(directUrl);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setSrc(directUrl);
+    setFailed(false);
+  }, [icon, directUrl]);
+
+  if (!icon || failed || !src) {
+    return (
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <FolderTree className="h-5 w-5" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={`${name} icon`}
+      className="h-10 w-10 shrink-0 rounded-xl border border-border bg-background object-contain p-1.5"
+      crossOrigin="anonymous"
+      referrerPolicy="no-referrer"
+      onError={() => {
+        if (src === directUrl && proxyUrl && proxyUrl !== directUrl) {
+          setSrc(proxyUrl);
+          return;
+        }
+        setFailed(true);
+      }}
+    />
+  );
+}
+
+function SubcategoryIcon({ icon, name }: { icon: string | null; name: string }) {
+  const directUrl = resolveMediaUrl(icon);
+  const proxyUrl = resolveMediaPreviewUrl(icon);
+  const [src, setSrc] = useState(directUrl);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setSrc(directUrl);
+    setFailed(false);
+  }, [icon, directUrl]);
+
+  if (!icon || failed || !src) {
+    return (
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600">
+        <Layers className="h-5 w-5" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={`${name} icon`}
+      className="h-10 w-10 shrink-0 rounded-xl border border-border bg-background object-contain p-1.5"
+      crossOrigin="anonymous"
+      referrerPolicy="no-referrer"
+      onError={() => {
+        if (src === directUrl && proxyUrl && proxyUrl !== directUrl) {
+          setSrc(proxyUrl);
+          return;
+        }
+        setFailed(true);
+      }}
+    />
+  );
+}
+
+function ListRowsSkeleton({ rows = 5 }: { rows?: number }) {
+  return (
+    <div className="divide-y divide-border">
+      {Array.from({ length: rows }).map((_, index) => (
+        <div key={index} className="flex items-center gap-4 px-4 py-4 sm:px-6">
+          <Skeleton className="h-10 w-10 shrink-0 rounded-xl" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-3 w-28" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TableLoadingOverlay({
+  loading,
+  children,
+}: {
+  loading: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className="relative">
+      {children}
+      {loading && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70 backdrop-blur-[1px]">
+          <Loader size="lg" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+const selectClassName = cn(
+  "h-10 rounded-xl border border-border bg-background/50 px-3 text-sm",
+  "focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-primary/50"
+);
+
+function SearchSortToolbar<T extends string = "name">({
+  search,
+  sortBy,
+  sortOrder,
+  searchPlaceholder,
+  sortById,
+  sortOrderId,
+  sortOptions = [{ value: "name" as T, label: "Name" }],
+  sortOrderAscLabel = "A → Z",
+  sortOrderDescLabel = "Z → A",
+  onSearchChange,
+  onSortByChange,
+  onSortOrderChange,
+}: {
+  search: string;
+  sortBy: T;
+  sortOrder: SortOrder;
+  searchPlaceholder: string;
+  sortById: string;
+  sortOrderId: string;
+  sortOptions?: { value: T; label: string }[];
+  sortOrderAscLabel?: string;
+  sortOrderDescLabel?: string;
+  onSearchChange: (value: string) => void;
+  onSortByChange: (value: T) => void;
+  onSortOrderChange: (value: SortOrder) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+      <div className="relative flex-1">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          type="search"
+          value={search}
+          onChange={(event) => onSearchChange(event.target.value)}
+          placeholder={searchPlaceholder}
+          className={cn(
+            "flex h-10 w-full rounded-xl border border-border bg-background/50 py-2 pl-10 pr-4 text-sm",
+            "placeholder:text-muted-foreground",
+            "focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-primary/50"
+          )}
+        />
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="sr-only" htmlFor={sortById}>
+          Sort by
+        </label>
+        <select
+          id={sortById}
+          value={sortBy}
+          onChange={(event) => onSortByChange(event.target.value as T)}
+          className={selectClassName}
+        >
+          {sortOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <label className="sr-only" htmlFor={sortOrderId}>
+          Sort order
+        </label>
+        <select
+          id={sortOrderId}
+          value={sortOrder}
+          onChange={(event) => onSortOrderChange(event.target.value as SortOrder)}
+          className={selectClassName}
+        >
+          <option value="asc">{sortOrderAscLabel}</option>
+          <option value="desc">{sortOrderDescLabel}</option>
+        </select>
+      </div>
+    </div>
+  );
+}
+
 function CategoriesView({
   data,
+  loading,
   activeFilter,
+  search,
+  sortBy,
+  sortOrder,
+  onSearchChange,
+  onSortByChange,
+  onSortOrderChange,
   onActiveFilterChange,
   onSelect,
   onEdit,
@@ -670,7 +1093,14 @@ function CategoriesView({
   onAdd,
 }: {
   data: PaginatedData<Category>;
+  loading: boolean;
   activeFilter: ActiveFilter;
+  search: string;
+  sortBy: "name";
+  sortOrder: SortOrder;
+  onSearchChange: (value: string) => void;
+  onSortByChange: (value: "name") => void;
+  onSortOrderChange: (value: SortOrder) => void;
   onActiveFilterChange: (filter: ActiveFilter) => void;
   onSelect: (category: Category) => void;
   onEdit: (category: Category) => void;
@@ -678,14 +1108,33 @@ function CategoriesView({
   onPageChange: (page: number) => void;
   onAdd: () => void;
 }) {
-  const emptyDescription =
-    activeFilter === "active"
+  const trimmedSearch = search.trim();
+  const emptyDescription = trimmedSearch
+    ? `No categories match "${trimmedSearch}".`
+    : activeFilter === "active"
       ? "There are no active categories in the system."
       : activeFilter === "inactive"
         ? "There are no inactive categories in the system."
         : "There are no categories in the system.";
 
-  if (data.results.length === 0) {
+  const toolbar = (
+    <>
+      <SearchSortToolbar
+        search={search}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        searchPlaceholder="Search categories..."
+        sortById="category-sort-by"
+        sortOrderId="category-sort-order"
+        onSearchChange={onSearchChange}
+        onSortByChange={onSortByChange}
+        onSortOrderChange={onSortOrderChange}
+      />
+      <ActiveStatusFilter value={activeFilter} onChange={onActiveFilterChange} />
+    </>
+  );
+
+  if (!loading && data.results.length === 0) {
     return (
       <Card>
         <CardHeader className="space-y-4">
@@ -699,7 +1148,7 @@ function CategoriesView({
               Add Category
             </Button>
           </div>
-          <ActiveStatusFilter value={activeFilter} onChange={onActiveFilterChange} />
+          {toolbar}
         </CardHeader>
         <EmptyState
           icon={<FolderTree className="h-8 w-8 text-muted-foreground" />}
@@ -722,18 +1171,22 @@ function CategoriesView({
         <div className="flex flex-row items-center justify-between gap-4">
           <CardTitle className="flex items-center gap-2 text-base">
             <FolderTree className="h-4 w-4" />
-            Categories ({data.pagination.total})
+            Categories ({loading ? "…" : data.pagination.total})
           </CardTitle>
           <Button size="sm" onClick={onAdd}>
             <Plus className="h-4 w-4" />
             Add Category
           </Button>
         </div>
-        <ActiveStatusFilter value={activeFilter} onChange={onActiveFilterChange} />
+        {toolbar}
       </CardHeader>
       <CardContent className="p-0">
-        <div className="divide-y divide-border">
-          {data.results.map((category) => (
+        {loading && data.results.length === 0 ? (
+          <ListRowsSkeleton />
+        ) : (
+          <TableLoadingOverlay loading={loading}>
+            <div className="divide-y divide-border">
+              {data.results.map((category) => (
             <div
               key={category.id}
               className="flex items-center gap-2 px-4 py-4 sm:px-6 hover:bg-muted/50 transition-colors"
@@ -743,9 +1196,7 @@ function CategoriesView({
                 onClick={() => onSelect(category)}
                 className="flex min-w-0 flex-1 items-center gap-4 text-left"
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <FolderTree className="h-5 w-5" />
-                </div>
+                <CategoryIcon icon={category.icon} name={category.name} />
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{category.name}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{category.slug}</p>
@@ -780,7 +1231,9 @@ function CategoriesView({
               </div>
             </div>
           ))}
-        </div>
+            </div>
+          </TableLoadingOverlay>
+        )}
         <div className="px-6 pb-4">
           <Pagination pagination={data.pagination} onPageChange={onPageChange} />
         </div>
@@ -791,31 +1244,66 @@ function CategoriesView({
 
 function SubcategoriesView({
   category,
-  subcategories,
+  data,
+  loading,
   activeFilter,
+  search,
+  sortBy,
+  sortOrder,
+  onSearchChange,
+  onSortByChange,
+  onSortOrderChange,
   onActiveFilterChange,
   onSelect,
   onEdit,
   onDelete,
+  onPageChange,
   onAdd,
 }: {
   category: Category;
-  subcategories: Subcategory[];
+  data: PaginatedData<Subcategory>;
+  loading: boolean;
   activeFilter: ActiveFilter;
+  search: string;
+  sortBy: "name";
+  sortOrder: SortOrder;
+  onSearchChange: (value: string) => void;
+  onSortByChange: (value: "name") => void;
+  onSortOrderChange: (value: SortOrder) => void;
   onActiveFilterChange: (filter: ActiveFilter) => void;
   onSelect: (subcategory: Subcategory) => void;
   onEdit: (subcategory: Subcategory) => void;
   onDelete: (subcategory: Subcategory) => void;
+  onPageChange: (page: number) => void;
   onAdd: () => void;
 }) {
-  const emptyDescription =
-    activeFilter === "active"
+  const trimmedSearch = search.trim();
+  const emptyDescription = trimmedSearch
+    ? `No subcategories match "${trimmedSearch}".`
+    : activeFilter === "active"
       ? `"${category.name}" has no active subcategories.`
       : activeFilter === "inactive"
         ? `"${category.name}" has no inactive subcategories.`
         : `"${category.name}" has no subcategories yet.`;
 
-  if (subcategories.length === 0) {
+  const toolbar = (
+    <>
+      <SearchSortToolbar
+        search={search}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        searchPlaceholder="Search subcategories..."
+        sortById="subcategory-sort-by"
+        sortOrderId="subcategory-sort-order"
+        onSearchChange={onSearchChange}
+        onSortByChange={onSortByChange}
+        onSortOrderChange={onSortOrderChange}
+      />
+      <ActiveStatusFilter value={activeFilter} onChange={onActiveFilterChange} />
+    </>
+  );
+
+  if (!loading && data.results.length === 0) {
     return (
       <Card>
         <CardHeader className="space-y-4">
@@ -829,7 +1317,7 @@ function SubcategoriesView({
               Add Subcategory
             </Button>
           </div>
-          <ActiveStatusFilter value={activeFilter} onChange={onActiveFilterChange} />
+          {toolbar}
         </CardHeader>
         <EmptyState
           icon={<Layers className="h-8 w-8 text-muted-foreground" />}
@@ -852,18 +1340,22 @@ function SubcategoriesView({
         <div className="flex flex-row items-center justify-between gap-4">
           <CardTitle className="flex items-center gap-2 text-base">
             <Layers className="h-4 w-4" />
-            Subcategories in {category.name} ({subcategories.length})
+            Subcategories in {category.name} ({loading ? "…" : data.pagination.total})
           </CardTitle>
           <Button size="sm" onClick={onAdd}>
             <Plus className="h-4 w-4" />
             Add Subcategory
           </Button>
         </div>
-        <ActiveStatusFilter value={activeFilter} onChange={onActiveFilterChange} />
+        {toolbar}
       </CardHeader>
       <CardContent className="p-0">
-        <div className="divide-y divide-border">
-          {subcategories.map((sub) => (
+        {loading && data.results.length === 0 ? (
+          <ListRowsSkeleton />
+        ) : (
+          <TableLoadingOverlay loading={loading}>
+            <div className="divide-y divide-border">
+              {data.results.map((sub) => (
             <div
               key={sub.id}
               className="flex items-center gap-2 px-4 py-4 sm:px-6 hover:bg-muted/50 transition-colors"
@@ -873,9 +1365,7 @@ function SubcategoriesView({
                 onClick={() => onSelect(sub)}
                 className="flex min-w-0 flex-1 items-center gap-4 text-left"
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600">
-                  <Layers className="h-5 w-5" />
-                </div>
+                <SubcategoryIcon icon={sub.icon} name={sub.name} />
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{sub.name}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{sub.slug}</p>
@@ -911,6 +1401,11 @@ function SubcategoriesView({
               </div>
             </div>
           ))}
+            </div>
+          </TableLoadingOverlay>
+        )}
+        <div className="px-6 pb-4">
+          <Pagination pagination={data.pagination} onPageChange={onPageChange} />
         </div>
       </CardContent>
     </Card>
@@ -920,19 +1415,62 @@ function SubcategoriesView({
 function ProductsView({
   subcategory,
   data,
+  loading,
+  search,
+  sortBy,
+  sortOrder,
+  onSearchChange,
+  onSortByChange,
+  onSortOrderChange,
   onPageChange,
 }: {
   subcategory: Subcategory;
   data: PaginatedData<Product>;
+  loading: boolean;
+  search: string;
+  sortBy: ProductSortBy;
+  sortOrder: SortOrder;
+  onSearchChange: (value: string) => void;
+  onSortByChange: (value: ProductSortBy) => void;
+  onSortOrderChange: (value: SortOrder) => void;
   onPageChange: (page: number) => void;
 }) {
-  if (data.results.length === 0) {
+  const trimmedSearch = search.trim();
+  const emptyDescription = trimmedSearch
+    ? `No products match "${trimmedSearch}".`
+    : `"${subcategory.name}" has no products listed yet.`;
+
+  const toolbar = (
+    <SearchSortToolbar
+      search={search}
+      sortBy={sortBy}
+      sortOrder={sortOrder}
+      searchPlaceholder="Search products..."
+      sortById="product-sort-by"
+      sortOrderId="product-sort-order"
+      sortOptions={PRODUCT_SORT_OPTIONS}
+      sortOrderAscLabel="Ascending"
+      sortOrderDescLabel="Descending"
+      onSearchChange={onSearchChange}
+      onSortByChange={onSortByChange}
+      onSortOrderChange={onSortOrderChange}
+    />
+  );
+
+  if (!loading && data.results.length === 0) {
     return (
       <Card>
+        <CardHeader className="space-y-4">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Package className="h-4 w-4" />
+            Products in {subcategory.name}
+          </CardTitle>
+          {toolbar}
+        </CardHeader>
         <EmptyState
           icon={<Package className="h-8 w-8 text-muted-foreground" />}
           title="No products"
-          description={`"${subcategory.name}" has no products listed yet.`}
+          description={emptyDescription}
         />
       </Card>
     );
@@ -940,45 +1478,76 @@ function ProductsView({
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="space-y-4">
         <CardTitle className="flex items-center gap-2 text-base">
           <Package className="h-4 w-4" />
-          Products in {subcategory.name} ({data.pagination.total})
+          Products in {subcategory.name} ({loading ? "…" : data.pagination.total})
         </CardTitle>
+        {toolbar}
       </CardHeader>
       <CardContent className="p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/40">
-                <th className="text-left font-medium px-6 py-3">ID</th>
-                <th className="text-left font-medium px-6 py-3">Name</th>
-                <th className="text-left font-medium px-6 py-3 hidden sm:table-cell">Slug</th>
-                <th className="text-left font-medium px-6 py-3 hidden md:table-cell">Price</th>
-                <th className="text-left font-medium px-6 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {data.results.map((product) => (
-                <tr key={product.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-6 py-3 text-muted-foreground">#{product.id}</td>
-                  <td className="px-6 py-3 font-medium">{product.name}</td>
-                  <td className="px-6 py-3 text-muted-foreground hidden sm:table-cell">
-                    {product.slug ?? "—"}
-                  </td>
-                  <td className="px-6 py-3 hidden md:table-cell">
-                    {product.price != null ? `₹${product.price}` : "—"}
-                  </td>
-                  <td className="px-6 py-3">
-                    <Badge variant={product.is_active ? "success" : "outline"}>
-                      {product.is_active ? "Active" : "Inactive"}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {loading && data.results.length === 0 ? (
+          <div className="px-6 py-8">
+            <ListRowsSkeleton rows={4} />
+          </div>
+        ) : (
+          <TableLoadingOverlay loading={loading}>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40">
+                    <th className="text-left font-medium px-6 py-3">ID</th>
+                    <th className="text-left font-medium px-6 py-3">Name</th>
+                    <th className="text-left font-medium px-6 py-3 hidden lg:table-cell">
+                      Supplier
+                    </th>
+                    <th className="text-left font-medium px-6 py-3 hidden md:table-cell">
+                      Price
+                    </th>
+                    <th className="text-left font-medium px-6 py-3 hidden sm:table-cell">
+                      MOQ
+                    </th>
+                    <th className="text-left font-medium px-6 py-3 hidden md:table-cell">
+                      Rating
+                    </th>
+                    <th className="text-left font-medium px-6 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {data.results.map((product) => (
+                    <tr key={product.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-6 py-3 text-muted-foreground">#{product.id}</td>
+                      <td className="px-6 py-3">
+                        <p className="font-medium">{product.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{product.slug}</p>
+                      </td>
+                      <td className="px-6 py-3 hidden lg:table-cell">{product.supplier_name}</td>
+                      <td className="px-6 py-3 hidden md:table-cell">
+                        {product.currency === "INR" ? "₹" : `${product.currency} `}
+                        {product.price.toLocaleString("en-IN")}
+                      </td>
+                      <td className="px-6 py-3 text-muted-foreground hidden sm:table-cell">
+                        {product.moq} {product.unit}
+                      </td>
+                      <td className="px-6 py-3 hidden md:table-cell">
+                        {product.rating.toFixed(1)}
+                      </td>
+                      <td className="px-6 py-3">
+                        <div className="flex flex-wrap gap-1.5">
+                          {product.verified && <Badge variant="success">Verified</Badge>}
+                          {product.is_trending && <Badge variant="info">Trending</Badge>}
+                          {!product.verified && !product.is_trending && (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </TableLoadingOverlay>
+        )}
         <div className="px-6 pb-4">
           <Pagination pagination={data.pagination} onPageChange={onPageChange} />
         </div>

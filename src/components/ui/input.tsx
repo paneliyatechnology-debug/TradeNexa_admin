@@ -26,7 +26,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         <input
           ref={ref}
           id={inputId}
-          required={required}
+          aria-required={required || undefined}
           className={cn(
             "flex h-11 w-full rounded-xl border border-border bg-background/50 px-4 py-2 text-sm",
             "placeholder:text-muted-foreground",

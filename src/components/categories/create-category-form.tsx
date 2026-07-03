@@ -118,7 +118,6 @@ export function CreateCategoryForm({
             required
             placeholder="e.g. Laboratory Instruments"
             error={errors.name?.message}
-            hint="Required"
             autoFocus
             {...register("name")}
           />
@@ -146,7 +145,6 @@ export function CreateCategoryForm({
                     mode === "edit" ? () => setValue("clear_icon", true) : undefined
                   }
                   error={errors.icon?.message}
-                  hint="Required"
                   formats="PNG, JPG, WEBP, SVG"
                   accept="image/png,image/jpeg,image/webp,image/svg+xml"
                 />

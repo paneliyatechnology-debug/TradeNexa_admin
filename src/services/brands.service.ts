@@ -40,7 +40,8 @@ export const brandsService = {
       page: params.page ?? 1,
       limit: params.limit ?? 10,
       search: params.search || undefined,
-      is_popular: params.is_popular,
+      is_popular:
+        params.is_popular === undefined ? undefined : params.is_popular,
       sort_by: params.sort_by,
       sort_order: params.sort_order,
     });

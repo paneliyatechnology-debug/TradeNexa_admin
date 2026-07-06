@@ -1,5 +1,11 @@
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
-import type { Banner, CreateBannerInput, UpdateBannerInput } from "@/types/banner";
+import type { PaginatedData } from "@/types/api";
+import type {
+  Banner,
+  BannerListParams,
+  CreateBannerInput,
+  UpdateBannerInput,
+} from "@/types/banner";
 import {
   apiClientDelete,
   apiClientGet,
@@ -37,8 +43,14 @@ function buildBannerFormData(
 }
 
 export const bannersService = {
-  async getBanners(): Promise<Banner[]> {
-    return apiClientGet<Banner[]>(BANNERS_LIST_URL);
+  async getBanners(params: BannerListParams = {}): Promise<PaginatedData<Banner>> {
+    return apiClientGet<PaginatedData<Banner>>(BANNERS_LIST_URL, {
+      page: params.page ?? 1,
+      limit: params.limit ?? 10,
+      search: params.search || undefined,
+      sort_by: params.sort_by,
+      sort_order: params.sort_order,
+    });
   },
 
   async getBanner(id: number): Promise<Banner> {

@@ -31,11 +31,19 @@ export interface UpdateOfferInput {
   expiry_date: string;
 }
 
+export type OfferSortBy =
+  | "id"
+  | "created_at"
+  | "title"
+  | "discount"
+  | "expiry_date";
+
 export interface OfferListParams {
   page?: number;
   limit?: number;
   search?: string;
-  sort_by?: "id" | "created_at" | "title";
+  include_expired?: boolean;
+  sort_by?: OfferSortBy;
   sort_order?: SortOrder;
 }
 

@@ -39,6 +39,7 @@ export const offersService = {
       page: params.page ?? 1,
       limit: params.limit ?? 10,
       search: params.search || undefined,
+      include_expired: params.include_expired ?? false,
       sort_by: params.sort_by,
       sort_order: params.sort_order,
     });

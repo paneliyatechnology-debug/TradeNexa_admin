@@ -14,16 +14,22 @@ import { Pagination } from "@/components/ui/pagination";
 import { DashboardSkeleton, Skeleton } from "@/components/ui/skeleton";
 import { Loader } from "@/components/ui/loader";
 import { offersService } from "@/services/offers.service";
-import type { PaginatedData } from "@/types/api";
-import type { CreateOfferInput, Offer, UpdateOfferInput } from "@/types/offer";
+import type { PaginatedData, SortOrder } from "@/types/api";
+import type {
+  CreateOfferInput,
+  Offer,
+  OfferSortBy,
+  UpdateOfferInput,
+} from "@/types/offer";
 import {
   formatExpiryDateForApi,
   formatExpiryDateLabel,
 } from "@/types/offer";
 import { resolveMediaDisplayUrl } from "@/utils/media-url";
 import { cn } from "@/utils/cn";
+import { getColumnDefaultOrder, nextColumnSortState } from "@/utils/column-sort";
 import type { OfferFormData } from "@/utils/validators";
-import { ImageIcon, Pencil, Plus, Search, Tag, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ImageIcon, Pencil, Plus, Search, Tag, Trash2 } from "lucide-react";
 
 interface OfferManagementProps {
   title: string;
@@ -36,6 +42,89 @@ const defaultPagination = {
   limit: 10,
   totalPages: 0,
 };
+
+const SORTABLE_COLUMNS: { column: OfferSortBy; label: string; defaultOrder: SortOrder }[] = [
+  { column: "title", label: "Title", defaultOrder: "asc" },
+  { column: "discount", label: "Discount", defaultOrder: "desc" },
+  { column: "expiry_date", label: "Expiry Date", defaultOrder: "asc" },
+];
+
+function getDefaultSortOrder(column: OfferSortBy): SortOrder {
+  return getColumnDefaultOrder(column, SORTABLE_COLUMNS);
+}
+
+function SortableColumnHeader({
+  label,
+  column,
+  sortBy,
+  sortOrder,
+  onSort,
+}: {
+  label: string;
+  column: OfferSortBy;
+  sortBy: OfferSortBy | null;
+  sortOrder: SortOrder;
+  onSort: (column: OfferSortBy) => void;
+}) {
+  const isActive = sortBy === column;
+
+  return (
+    <th className="px-4 py-3 text-left font-medium sm:px-6">
+      <button
+        type="button"
+        onClick={() => onSort(column)}
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-md transition-colors",
+          "hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+          isActive ? "text-primary" : "text-foreground"
+        )}
+        aria-sort={
+          isActive ? (sortOrder === "asc" ? "ascending" : "descending") : "none"
+        }
+      >
+        <span>{label}</span>
+        {isActive ? (
+          sortOrder === "asc" ? (
+            <ArrowUp className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          ) : (
+            <ArrowDown className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          )
+        ) : (
+          <ArrowUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" aria-hidden />
+        )}
+      </button>
+    </th>
+  );
+}
+
+function OfferTableHeader({
+  sortBy,
+  sortOrder,
+  onSort,
+}: {
+  sortBy: OfferSortBy | null;
+  sortOrder: SortOrder;
+  onSort: (column: OfferSortBy) => void;
+}) {
+  return (
+    <thead>
+      <tr className="border-b border-border bg-muted/40">
+        <th className="px-4 py-3 text-left font-medium sm:px-6">Banner</th>
+        {SORTABLE_COLUMNS.map((item) => (
+          <SortableColumnHeader
+            key={item.column}
+            label={item.label}
+            column={item.column}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSort={onSort}
+          />
+        ))}
+        <th className="px-4 py-3 text-left font-medium sm:px-6">Actions</th>
+      </tr>
+    </thead>
+  );
+}
 
 function TableLoadingOverlay({
   loading,
@@ -105,7 +194,6 @@ function OfferTableRow({
       </td>
       <td className="px-4 py-3 sm:px-6">
         <p className="max-w-[14rem] font-medium leading-snug sm:max-w-xs">{displayTitle}</p>
-        <p className="mt-0.5 text-xs text-muted-foreground">ID #{offer.id}</p>
       </td>
       <td className="px-4 py-3 sm:px-6">
         <Badge className="border-0 bg-primary/10 text-primary hover:bg-primary/10">
@@ -171,7 +259,6 @@ function TableRowsSkeleton({ rows = 5 }: { rows?: number }) {
           </td>
           <td className="px-4 py-3 sm:px-6">
             <Skeleton className="h-4 w-36" />
-            <Skeleton className="mt-2 h-3 w-14" />
           </td>
           <td className="px-4 py-3 sm:px-6">
             <Skeleton className="h-6 w-16 rounded-full" />
@@ -203,6 +290,9 @@ export function OfferManagement({ title, basePath }: OfferManagementProps) {
   const [limit] = useState(10);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<OfferSortBy | null>(null);
+  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+  const [includeExpired, setIncludeExpired] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [editOffer, setEditOffer] = useState<Offer | null>(null);
   const [editLoading, setEditLoading] = useState(false);
@@ -211,27 +301,25 @@ export function OfferManagement({ title, basePath }: OfferManagementProps) {
 
   const prevSearchRef = useRef("");
 
-  const fetchOffers = useCallback(
-    async (pageNum: number, searchQuery: string) => {
-      setLoading(true);
-      try {
-        const data = await offersService.getOffers({
-          page: pageNum,
-          limit,
-          search: searchQuery || undefined,
-          sort_by: "id",
-          sort_order: "desc",
-        });
-        setOffers(data);
-        setHasLoaded(true);
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to load offers");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [limit]
-  );
+  const fetchOffers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await offersService.getOffers({
+        page,
+        limit,
+        search: search || undefined,
+        include_expired: includeExpired,
+        sort_by: sortBy ?? undefined,
+        sort_order: sortBy ? sortOrder : undefined,
+      });
+      setOffers(data);
+      setHasLoaded(true);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to load offers");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, limit, search, includeExpired, sortBy, sortOrder]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -246,8 +334,8 @@ export function OfferManagement({ title, basePath }: OfferManagementProps) {
   }, [searchInput]);
 
   useEffect(() => {
-    void fetchOffers(page, search);
-  }, [fetchOffers, page, search]);
+    void fetchOffers();
+  }, [fetchOffers]);
 
   const toCreatePayload = (data: OfferFormData): CreateOfferInput => ({
     title: data.title.trim(),
@@ -270,7 +358,7 @@ export function OfferManagement({ title, basePath }: OfferManagementProps) {
       toast.success("Offer created successfully");
       setCreateOpen(false);
       setPage(1);
-      await fetchOffers(1, search);
+      await fetchOffers();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to create offer");
     }
@@ -283,7 +371,7 @@ export function OfferManagement({ title, basePath }: OfferManagementProps) {
       await offersService.updateOffer(editOffer.id, toUpdatePayload(data));
       toast.success("Offer updated successfully");
       setEditOffer(null);
-      await fetchOffers(page, search);
+      await fetchOffers();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update offer");
     }
@@ -300,7 +388,7 @@ export function OfferManagement({ title, basePath }: OfferManagementProps) {
 
       const nextPage = offers.results.length === 1 && page > 1 ? page - 1 : page;
       setPage(nextPage);
-      await fetchOffers(nextPage, search);
+      await fetchOffers();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete offer");
     } finally {
@@ -323,11 +411,25 @@ export function OfferManagement({ title, basePath }: OfferManagementProps) {
     }
   };
 
+  const handleColumnSort = (column: OfferSortBy) => {
+    setPage(1);
+
+    const next = nextColumnSortState({
+      column,
+      sortBy,
+      sortOrder,
+      defaultOrder: getDefaultSortOrder(column),
+    });
+    setSortBy(next.sortBy);
+    setSortOrder(next.sortOrder);
+  };
+
   if (!hasLoaded && loading) {
     return <DashboardSkeleton />;
   }
 
   const deleteTitle = deleteOffer?.title?.trim() || `Offer #${deleteOffer?.id}`;
+  const hasActiveFilters = Boolean(search) || includeExpired;
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -364,15 +466,30 @@ export function OfferManagement({ title, basePath }: OfferManagementProps) {
             </Button>
           </div>
 
-          <div className="relative w-full lg:max-w-md">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="search"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Search offers..."
-              className="h-11 w-full rounded-xl border border-border bg-background/50 pl-10 pr-4 text-sm focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-ring/50"
-            />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full sm:max-w-md">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="search"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder="Search offers..."
+                className="h-11 w-full rounded-xl border border-border bg-background/50 pl-10 pr-4 text-sm focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-ring/50"
+              />
+            </div>
+
+            <label className="flex h-11 w-full cursor-pointer items-center gap-2 rounded-xl border border-border bg-background/50 px-3 text-sm sm:w-auto">
+              <input
+                type="checkbox"
+                checked={includeExpired}
+                onChange={(event) => {
+                  setIncludeExpired(event.target.checked);
+                  setPage(1);
+                }}
+                className="h-4 w-4 rounded border-border text-primary focus:ring-primary/50"
+              />
+              <span className="whitespace-nowrap">Include expired</span>
+            </label>
           </div>
         </CardHeader>
 
@@ -380,15 +497,11 @@ export function OfferManagement({ title, basePath }: OfferManagementProps) {
           {loading && offers.results.length === 0 ? (
             <div className="overflow-x-auto px-4 py-4 sm:px-0">
               <table className="w-full min-w-[44rem] text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/40">
-                    <th className="px-4 py-3 text-left font-medium sm:px-6">Banner</th>
-                    <th className="px-4 py-3 text-left font-medium sm:px-6">Title</th>
-                    <th className="px-4 py-3 text-left font-medium sm:px-6">Discount</th>
-                    <th className="px-4 py-3 text-left font-medium sm:px-6">Expiry Date</th>
-                    <th className="px-4 py-3 text-left font-medium sm:px-6">Actions</th>
-                  </tr>
-                </thead>
+                <OfferTableHeader
+                  sortBy={sortBy}
+                  sortOrder={sortOrder}
+                  onSort={handleColumnSort}
+                />
                 <tbody className="divide-y divide-border">
                   <TableRowsSkeleton />
                 </tbody>
@@ -397,14 +510,14 @@ export function OfferManagement({ title, basePath }: OfferManagementProps) {
           ) : offers.results.length === 0 ? (
             <EmptyState
               icon={<Tag className="h-8 w-8 text-muted-foreground" />}
-              title={search ? "No offers found" : "No offers yet"}
+              title={hasActiveFilters ? "No offers found" : "No offers yet"}
               description={
-                search
-                  ? "Try adjusting your search."
+                hasActiveFilters
+                  ? "Try adjusting your search, sort, or filters."
                   : "Create your first promotional offer."
               }
               action={
-                !search ? (
+                !hasActiveFilters ? (
                   <Button onClick={() => setCreateOpen(true)}>
                     <Plus className="h-4 w-4" />
                     Add Offer
@@ -417,15 +530,11 @@ export function OfferManagement({ title, basePath }: OfferManagementProps) {
               <TableLoadingOverlay loading={loading}>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[44rem] text-sm">
-                    <thead>
-                      <tr className="border-b border-border bg-muted/40">
-                        <th className="px-4 py-3 text-left font-medium sm:px-6">Banner</th>
-                        <th className="px-4 py-3 text-left font-medium sm:px-6">Title</th>
-                        <th className="px-4 py-3 text-left font-medium sm:px-6">Discount</th>
-                        <th className="px-4 py-3 text-left font-medium sm:px-6">Expiry Date</th>
-                        <th className="px-4 py-3 text-left font-medium sm:px-6">Actions</th>
-                      </tr>
-                    </thead>
+                    <OfferTableHeader
+                      sortBy={sortBy}
+                      sortOrder={sortOrder}
+                      onSort={handleColumnSort}
+                    />
                     <tbody className="divide-y divide-border">
                       {offers.results.map((offer) => (
                         <OfferTableRow

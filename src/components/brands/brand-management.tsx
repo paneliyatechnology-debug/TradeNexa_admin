@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { BrandForm } from "@/components/brands/brand-form";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
@@ -14,12 +14,26 @@ import { Pagination } from "@/components/ui/pagination";
 import { DashboardSkeleton, Skeleton } from "@/components/ui/skeleton";
 import { Loader } from "@/components/ui/loader";
 import { brandsService } from "@/services/brands.service";
-import type { PaginatedData } from "@/types/api";
-import type { Brand, CreateBrandInput, UpdateBrandInput } from "@/types/brand";
+import type { PaginatedData, SortOrder } from "@/types/api";
+import type { Brand, BrandSortBy, CreateBrandInput, UpdateBrandInput } from "@/types/brand";
 import type { BrandFormData } from "@/utils/validators";
 import { resolveMediaDisplayUrl } from "@/utils/media-url";
-import { Award, ImageIcon, Pencil, Plus, Search, Star, Trash2 } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Award,
+  ImageIcon,
+  Pencil,
+  Plus,
+  Search,
+  Star,
+  Trash2,
+} from "lucide-react";
 import { cn } from "@/utils/cn";
+import { nextColumnSortState } from "@/utils/column-sort";
+
+const NAME_DEFAULT_SORT_ORDER: SortOrder = "asc";
 
 interface BrandManagementProps {
   title: string;
@@ -40,42 +54,134 @@ function toPopularParam(filter: PopularFilter): boolean | undefined {
   return filter === "popular";
 }
 
+function formatCreatedLabel(value?: string): string | null {
+  if (!value) return null;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function SortableColumnHeader({
+  label,
+  column,
+  sortBy,
+  sortOrder,
+  onSort,
+}: {
+  label: string;
+  column: BrandSortBy;
+  sortBy: BrandSortBy | null;
+  sortOrder: SortOrder;
+  onSort: (column: BrandSortBy) => void;
+}) {
+  const isActive = sortBy === column;
+
+  return (
+    <th className="px-4 py-3 text-left font-medium sm:px-6">
+      <button
+        type="button"
+        onClick={() => onSort(column)}
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-md transition-colors",
+          "hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+          isActive ? "text-primary" : "text-foreground"
+        )}
+        aria-sort={
+          isActive ? (sortOrder === "asc" ? "ascending" : "descending") : "none"
+        }
+      >
+        <span>{label}</span>
+        {isActive ? (
+          sortOrder === "asc" ? (
+            <ArrowUp className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          ) : (
+            <ArrowDown className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          )
+        ) : (
+          <ArrowUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" aria-hidden />
+        )}
+      </button>
+    </th>
+  );
+}
+
+function BrandTableHeader({
+  sortBy,
+  sortOrder,
+  onSort,
+}: {
+  sortBy: BrandSortBy | null;
+  sortOrder: SortOrder;
+  onSort: (column: BrandSortBy) => void;
+}) {
+  return (
+    <thead>
+      <tr className="border-b border-border bg-muted/40">
+        <th className="px-4 py-3 text-left font-medium sm:px-6">Logo</th>
+        <SortableColumnHeader
+          label="Name"
+          column="name"
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSort={onSort}
+        />
+        <th className="px-4 py-3 text-left font-medium sm:px-6">Created</th>
+        <th className="px-4 py-3 text-left font-medium sm:px-6">Popular</th>
+        <th className="px-4 py-3 text-left font-medium sm:px-6">Actions</th>
+      </tr>
+    </thead>
+  );
+}
+
+function TableLoadingOverlay({
+  loading,
+  children,
+}: {
+  loading: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className="relative">
+      {children}
+      {loading ? (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70 backdrop-blur-[1px]">
+          <Loader size="lg" />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function BrandLogo({
   logo,
   name,
-  size = "md",
 }: {
   logo: string | null;
   name: string;
-  size?: "md" | "lg";
 }) {
   const src = resolveMediaDisplayUrl(logo);
-  const isLarge = size === "lg";
-
-  const frameClass = cn(
-    "flex shrink-0 items-center justify-center overflow-hidden rounded-2xl border bg-gradient-to-br from-background to-muted/30",
-    isLarge
-      ? "h-12 w-12 border-primary/10 shadow-sm ring-2 ring-primary/5 sm:h-14 sm:w-14 sm:rounded-xl sm:ring-0"
-      : "h-14 w-14 rounded-xl border-border"
-  );
 
   if (!src) {
     return (
-      <div className={cn(frameClass, "text-muted-foreground")}>
-        <ImageIcon className={cn(isLarge ? "h-5 w-5" : "h-5 w-5")} />
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-dashed border-border bg-muted/30 text-muted-foreground">
+        <ImageIcon className="h-4 w-4" />
       </div>
     );
   }
 
   return (
-    <div className={frameClass}>
-      <img
-        src={src}
-        alt={name}
-        className="h-full w-full object-contain p-1.5"
-        referrerPolicy="no-referrer"
-      />
-    </div>
+    <img
+      src={src}
+      alt={name}
+      className="h-12 w-12 shrink-0 rounded-lg border border-border bg-background object-contain p-1"
+      referrerPolicy="no-referrer"
+    />
   );
 }
 
@@ -99,68 +205,37 @@ function BrandStatusBadge({ isPopular }: { isPopular: boolean }) {
   );
 }
 
-interface BrandListItemProps {
+function BrandTableRow({
+  brand,
+  onEdit,
+  onDelete,
+}: {
   brand: Brand;
   onEdit: () => void;
   onDelete: () => void;
-}
+}) {
+  const createdLabel = formatCreatedLabel(brand.created_at);
 
-function BrandListItem({ brand, onEdit, onDelete }: BrandListItemProps) {
   return (
-    <article
-      className={cn(
-        "group overflow-hidden transition-colors",
-        "rounded-2xl border border-border/70 bg-gradient-to-br from-card via-card to-muted/15 p-3 shadow-sm",
-        "sm:rounded-none sm:border-0 sm:border-b sm:border-border sm:bg-transparent sm:bg-none sm:p-0 sm:px-6 sm:py-4 sm:shadow-none",
-        "sm:hover:bg-muted/30"
-      )}
-    >
-      <div className="flex items-center gap-3 sm:gap-4">
-        <BrandLogo logo={brand.logo} name={brand.name} size="lg" />
-
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <h3 className="truncate text-[15px] font-semibold leading-tight sm:text-base">
-                {brand.name}
-              </h3>
-              <p className="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">
-                {brand.slug}
-              </p>
-            </div>
-
-            <div className="flex shrink-0 items-center gap-1 sm:hidden">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 rounded-xl bg-background/80 shadow-sm"
-                onClick={onEdit}
-                aria-label={`Edit ${brand.name}`}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 rounded-xl bg-background/80 text-destructive shadow-sm hover:text-destructive"
-                onClick={onDelete}
-                aria-label={`Delete ${brand.name}`}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          <div className="mt-2">
-            <BrandStatusBadge isPopular={brand.is_popular} />
-          </div>
-        </div>
-
-        <div className="hidden shrink-0 items-center gap-2 sm:flex">
+    <tr className="transition-colors hover:bg-muted/30">
+      <td className="px-4 py-3 sm:px-6">
+        <BrandLogo logo={brand.logo} name={brand.name} />
+      </td>
+      <td className="px-4 py-3 sm:px-6">
+        <p className="max-w-[14rem] font-medium leading-snug sm:max-w-xs">{brand.name}</p>
+      </td>
+      <td className="px-4 py-3 text-muted-foreground sm:px-6">
+        {createdLabel ?? "—"}
+      </td>
+      <td className="px-4 py-3 sm:px-6">
+        <BrandStatusBadge isPopular={brand.is_popular} />
+      </td>
+      <td className="px-4 py-3 sm:px-6">
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="icon"
-            className="h-10 w-10"
+            className="h-9 w-9"
             onClick={onEdit}
             aria-label={`Edit ${brand.name}`}
           >
@@ -169,35 +244,44 @@ function BrandListItem({ brand, onEdit, onDelete }: BrandListItemProps) {
           <Button
             variant="outline"
             size="icon"
-            className="h-10 w-10"
+            className="h-9 w-9"
             onClick={onDelete}
             aria-label={`Delete ${brand.name}`}
           >
             <Trash2 className="h-4 w-4 text-destructive" />
           </Button>
         </div>
-      </div>
-    </article>
+      </td>
+    </tr>
   );
 }
 
-function ListRowsSkeleton({ rows = 5 }: { rows?: number }) {
+function TableRowsSkeleton({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="space-y-3 p-3 sm:space-y-0 sm:divide-y sm:divide-border sm:p-0">
+    <>
       {Array.from({ length: rows }).map((_, index) => (
-        <div
-          key={index}
-          className="flex items-center gap-3 rounded-2xl border border-border/60 p-3 sm:rounded-none sm:border-0 sm:border-b sm:px-6 sm:py-4"
-        >
-          <Skeleton className="h-12 w-12 shrink-0 rounded-2xl" />
-          <div className="flex-1 space-y-2">
+        <tr key={index} className="border-b border-border">
+          <td className="px-4 py-3 sm:px-6">
+            <Skeleton className="h-12 w-12 rounded-lg" />
+          </td>
+          <td className="px-4 py-3 sm:px-6">
             <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-3 w-20" />
+          </td>
+          <td className="px-4 py-3 sm:px-6">
+            <Skeleton className="h-4 w-24" />
+          </td>
+          <td className="px-4 py-3 sm:px-6">
             <Skeleton className="h-5 w-16 rounded-full" />
-          </div>
-        </div>
+          </td>
+          <td className="px-4 py-3 sm:px-6">
+            <div className="flex gap-2">
+              <Skeleton className="h-9 w-9 rounded-md" />
+              <Skeleton className="h-9 w-9 rounded-md" />
+            </div>
+          </td>
+        </tr>
       ))}
-    </div>
+    </>
   );
 }
 
@@ -213,6 +297,8 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
   const [popularFilter, setPopularFilter] = useState<PopularFilter>("all");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<BrandSortBy | null>(null);
+  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [createOpen, setCreateOpen] = useState(false);
   const [editBrand, setEditBrand] = useState<Brand | null>(null);
   const [editLoading, setEditLoading] = useState(false);
@@ -221,28 +307,25 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
 
   const prevSearchRef = useRef("");
 
-  const fetchBrands = useCallback(
-    async (pageNum: number, filter: PopularFilter, searchQuery: string) => {
-      setLoading(true);
-      try {
-        const data = await brandsService.getBrands({
-          page: pageNum,
-          limit,
-          is_popular: toPopularParam(filter),
-          search: searchQuery || undefined,
-          sort_by: "name",
-          sort_order: "asc",
-        });
-        setBrands(data);
-        setHasLoaded(true);
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to load brands");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [limit]
-  );
+  const fetchBrands = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await brandsService.getBrands({
+        page,
+        limit,
+        is_popular: toPopularParam(popularFilter),
+        search: search || undefined,
+        sort_by: sortBy ?? undefined,
+        sort_order: sortBy ? sortOrder : undefined,
+      });
+      setBrands(data);
+      setHasLoaded(true);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to load brands");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, limit, popularFilter, search, sortBy, sortOrder]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -257,8 +340,21 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
   }, [searchInput]);
 
   useEffect(() => {
-    void fetchBrands(page, popularFilter, search);
-  }, [fetchBrands, page, popularFilter, search]);
+    void fetchBrands();
+  }, [fetchBrands]);
+
+  const handleColumnSort = (column: BrandSortBy) => {
+    setPage(1);
+
+    const next = nextColumnSortState({
+      column,
+      sortBy,
+      sortOrder,
+      defaultOrder: NAME_DEFAULT_SORT_ORDER,
+    });
+    setSortBy(next.sortBy);
+    setSortOrder(next.sortOrder);
+  };
 
   const toCreatePayload = (data: BrandFormData): CreateBrandInput => {
     if (!(data.logo instanceof File)) {
@@ -291,7 +387,7 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
       toast.success("Brand created successfully");
       setCreateOpen(false);
       setPage(1);
-      await fetchBrands(1, popularFilter, search);
+      await fetchBrands();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to create brand");
     }
@@ -304,7 +400,7 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
       await brandsService.updateBrand(editBrand.id, toUpdatePayload(data));
       toast.success("Brand updated successfully");
       setEditBrand(null);
-      await fetchBrands(page, popularFilter, search);
+      await fetchBrands();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update brand");
     }
@@ -319,10 +415,9 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
       toast.success("Brand deleted successfully");
       setDeleteBrand(null);
 
-      const nextPage =
-        brands.results.length === 1 && page > 1 ? page - 1 : page;
+      const nextPage = brands.results.length === 1 && page > 1 ? page - 1 : page;
       setPage(nextPage);
-      await fetchBrands(nextPage, popularFilter, search);
+      await fetchBrands();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete brand");
     } finally {
@@ -441,10 +536,19 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
           </div>
         </CardHeader>
 
-        <CardContent className="bg-muted/15 p-0 sm:bg-transparent">
+        <CardContent className="p-0">
           {loading && brands.results.length === 0 ? (
-            <div className="px-3 py-6 sm:px-6 sm:py-8">
-              <ListRowsSkeleton />
+            <div className="overflow-x-auto px-4 py-4 sm:px-0">
+              <table className="w-full min-w-[48rem] text-sm">
+                <BrandTableHeader
+                  sortBy={sortBy}
+                  sortOrder={sortOrder}
+                  onSort={handleColumnSort}
+                />
+                <tbody className="divide-y divide-border">
+                  <TableRowsSkeleton />
+                </tbody>
+              </table>
             </div>
           ) : brands.results.length === 0 ? (
             <EmptyState
@@ -466,24 +570,29 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
             />
           ) : (
             <>
-              <div className="relative space-y-3 p-3 sm:space-y-0 sm:divide-y sm:divide-border sm:p-0">
-                {loading ? (
-                  <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-background/60 backdrop-blur-[1px] sm:rounded-none">
-                    <Loader />
-                  </div>
-                ) : null}
+              <TableLoadingOverlay loading={loading}>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[48rem] text-sm">
+                    <BrandTableHeader
+                  sortBy={sortBy}
+                  sortOrder={sortOrder}
+                  onSort={handleColumnSort}
+                />
+                    <tbody className="divide-y divide-border">
+                      {brands.results.map((brand) => (
+                        <BrandTableRow
+                          key={brand.id}
+                          brand={brand}
+                          onEdit={() => void openEdit(brand)}
+                          onDelete={() => setDeleteBrand(brand)}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </TableLoadingOverlay>
 
-                {brands.results.map((brand) => (
-                  <BrandListItem
-                    key={brand.id}
-                    brand={brand}
-                    onEdit={() => void openEdit(brand)}
-                    onDelete={() => setDeleteBrand(brand)}
-                  />
-                ))}
-              </div>
-
-              <div className="border-t border-border px-3 py-3 sm:px-6 sm:py-4">
+              <div className="border-t border-border px-4 py-3 sm:px-6 sm:py-4">
                 <Pagination
                   pagination={brands.pagination}
                   onPageChange={setPage}

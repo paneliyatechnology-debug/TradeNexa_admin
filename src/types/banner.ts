@@ -1,3 +1,5 @@
+import type { SortOrder } from "@/types/api";
+
 export type BannerRedirectType = "category" | "product" | null;
 
 export interface Banner {
@@ -27,6 +29,16 @@ export interface UpdateBannerInput {
   redirect_type: BannerRedirectType;
   redirect_id: number | null;
   priority: number;
+}
+
+export type BannerSortBy = "id" | "title" | "priority" | "created_at";
+
+export interface BannerListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sort_by?: BannerSortBy;
+  sort_order?: SortOrder;
 }
 
 export function parseBannerRedirectType(

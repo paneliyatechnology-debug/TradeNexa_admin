@@ -29,11 +29,13 @@ export interface UpdateBrandInput {
   is_popular: boolean;
 }
 
+export type BrandSortBy = "id" | "name" | "created_at";
+
 export interface BrandListParams {
   page?: number;
   limit?: number;
   search?: string;
   is_popular?: boolean;
-  sort_by?: "name";
+  sort_by?: BrandSortBy;
   sort_order?: SortOrder;
 }

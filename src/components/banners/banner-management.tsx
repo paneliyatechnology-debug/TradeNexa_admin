@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { toast } from "sonner";
 import { BannerForm } from "@/components/banners/banner-form";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
@@ -10,28 +10,183 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Modal } from "@/components/ui/modal";
+import { Pagination } from "@/components/ui/pagination";
 import { DashboardSkeleton, Skeleton } from "@/components/ui/skeleton";
 import { Loader } from "@/components/ui/loader";
 import { bannersService } from "@/services/banners.service";
-import type { Banner, CreateBannerInput, UpdateBannerInput } from "@/types/banner";
+import type { PaginatedData, SortOrder } from "@/types/api";
+import type { Banner, BannerSortBy, CreateBannerInput, UpdateBannerInput } from "@/types/banner";
 import { parseBannerRedirectType } from "@/types/banner";
 import type { BannerFormData } from "@/utils/validators";
 import { resolveMediaDisplayUrl } from "@/utils/media-url";
-import { ImageIcon, Megaphone, Pencil, Plus, Trash2, ChevronDown, ChevronUp, GripVertical } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  GripVertical,
+  ImageIcon,
+  Megaphone,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { cn } from "@/utils/cn";
+import { getColumnDefaultOrder, nextColumnSortState } from "@/utils/column-sort";
 
 interface BannerManagementProps {
   title: string;
   basePath: string;
 }
 
-function sortBanners(data: Banner[]): Banner[] {
-  return [...data].sort((a, b) => a.priority - b.priority || a.id - b.id);
+const defaultPagination = {
+  total: 0,
+  page: 1,
+  limit: 10,
+  totalPages: 0,
+};
+
+const SORTABLE_COLUMNS: { column: BannerSortBy; label: string; defaultOrder: SortOrder }[] = [
+  { column: "title", label: "Title", defaultOrder: "asc" },
+  { column: "priority", label: "Priority", defaultOrder: "asc" },
+  { column: "created_at", label: "Created", defaultOrder: "desc" },
+];
+
+function getDefaultSortOrder(column: BannerSortBy): SortOrder {
+  return getColumnDefaultOrder(column, SORTABLE_COLUMNS);
 }
 
-function getNextPriority(banners: Banner[]): number {
-  if (banners.length === 0) return 1;
-  return Math.max(...banners.map((banner) => banner.priority)) + 1;
+function getNextPriority(items: Banner[], total: number): number {
+  if (items.length === 0) return Math.max(total, 0) + 1;
+  return Math.max(...items.map((banner) => banner.priority), 0, total) + 1;
+}
+
+function SortableColumnHeader({
+  label,
+  column,
+  sortBy,
+  sortOrder,
+  onSort,
+}: {
+  label: string;
+  column: BannerSortBy;
+  sortBy: BannerSortBy | null;
+  sortOrder: SortOrder;
+  onSort: (column: BannerSortBy) => void;
+}) {
+  const isActive = sortBy === column;
+
+  return (
+    <th className="px-4 py-3 text-left font-medium sm:px-6">
+      <button
+        type="button"
+        onClick={() => onSort(column)}
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-md transition-colors",
+          "hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+          isActive ? "text-primary" : "text-foreground"
+        )}
+        aria-sort={isActive ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
+      >
+        <span>{label}</span>
+        {isActive ? (
+          sortOrder === "asc" ? (
+            <ArrowUp className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          ) : (
+            <ArrowDown className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          )
+        ) : (
+          <ArrowUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" aria-hidden />
+        )}
+      </button>
+    </th>
+  );
+}
+
+function BannerTableHeader({
+  sortBy,
+  sortOrder,
+  onSort,
+  showDragColumn,
+}: {
+  sortBy: BannerSortBy | null;
+  sortOrder: SortOrder;
+  onSort: (column: BannerSortBy) => void;
+  showDragColumn: boolean;
+}) {
+  return (
+    <thead>
+      <tr className="border-b border-border bg-muted/40">
+        {showDragColumn ? (
+          <th className="w-10 px-2 py-3 text-left font-medium sm:px-3" aria-label="Reorder" />
+        ) : null}
+        <th className="px-4 py-3 text-left font-medium sm:px-6">Image</th>
+        <SortableColumnHeader
+          label="Title"
+          column="title"
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSort={onSort}
+        />
+        <SortableColumnHeader
+          label="Priority"
+          column="priority"
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSort={onSort}
+        />
+        <th className="px-4 py-3 text-left font-medium sm:px-6">Redirect</th>
+        <SortableColumnHeader
+          label="Created"
+          column="created_at"
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSort={onSort}
+        />
+        <th className="px-4 py-3 text-left font-medium sm:px-6">Actions</th>
+      </tr>
+    </thead>
+  );
+}
+
+function TableLoadingOverlay({
+  loading,
+  children,
+}: {
+  loading: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className="relative">
+      {children}
+      {loading ? (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70 backdrop-blur-[1px]">
+          <Loader size="lg" />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function formatCreatedLabel(value?: string): string | null {
+  if (!value) return null;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function formatRedirectLabel(banner: Banner): string {
+  if (banner.redirect_type && banner.redirect_id) {
+    return `${banner.redirect_type} #${banner.redirect_id}`;
+  }
+
+  return "No redirect";
 }
 
 function bannerToUpdatePayload(banner: Banner): UpdateBannerInput {
@@ -43,20 +198,20 @@ function bannerToUpdatePayload(banner: Banner): UpdateBannerInput {
   };
 }
 
-function applySequentialPriorities(ordered: Banner[]): Banner[] {
+function applySequentialPriorities(ordered: Banner[], startPriority: number): Banner[] {
   return ordered.map((banner, index) => ({
     ...banner,
-    priority: index + 1,
+    priority: startPriority + index,
   }));
 }
 
-function BannerImage({ image, title }: { image: string | null; title: string }) {
+function BannerImageThumb({ image, title }: { image: string | null; title: string }) {
   const src = resolveMediaDisplayUrl(image);
 
   if (!src) {
     return (
-      <div className="flex h-16 w-[5.5rem] shrink-0 items-center justify-center rounded-lg bg-muted/40 text-muted-foreground sm:h-14 sm:w-24">
-        <ImageIcon className="h-5 w-5" />
+      <div className="flex h-14 w-20 shrink-0 items-center justify-center rounded-lg border border-dashed border-border bg-muted/30 text-muted-foreground">
+        <ImageIcon className="h-4 w-4" />
       </div>
     );
   }
@@ -65,25 +220,149 @@ function BannerImage({ image, title }: { image: string | null; title: string }) 
     <img
       src={src}
       alt={title}
-      className="h-16 w-[5.5rem] shrink-0 rounded-lg border border-border bg-background object-cover sm:h-14 sm:w-24"
+      className="h-14 w-20 shrink-0 rounded-lg border border-border bg-background object-cover"
       referrerPolicy="no-referrer"
     />
   );
 }
 
-function ListRowsSkeleton({ rows = 4 }: { rows?: number }) {
+function BannerTableRow({
+  banner,
+  dragDropEnabled,
+  reorderingId,
+  draggingBannerId,
+  activeDrag,
+  dragStyle,
+  rowRef,
+  onGripPointerDown,
+  onEdit,
+  onDelete,
+}: {
+  banner: Banner;
+  dragDropEnabled: boolean;
+  reorderingId: number | null;
+  draggingBannerId: number | null;
+  activeDrag: ActiveBannerDrag | null;
+  dragStyle: CSSProperties;
+  rowRef: (element: HTMLTableRowElement | null) => void;
+  onGripPointerDown: (event: React.PointerEvent<HTMLButtonElement>) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const createdLabel = formatCreatedLabel(banner.created_at);
+
   return (
-    <div className="divide-y divide-border">
-      {Array.from({ length: rows }).map((_, index) => (
-        <div key={index} className="flex items-start gap-3 px-3 py-3 sm:items-center sm:gap-4 sm:px-6 sm:py-4">
-          <Skeleton className="h-16 w-[5.5rem] shrink-0 rounded-lg sm:h-14 sm:w-24" />
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-3 w-56" />
-          </div>
+    <tr
+      ref={rowRef}
+      style={dragStyle}
+      className={cn(
+        "transition-colors hover:bg-muted/30",
+        dragDropEnabled && draggingBannerId === null && reorderingId === null && "will-change-transform",
+        activeDrag?.id === banner.id && "bg-card ring-1 ring-inset ring-primary/20"
+      )}
+    >
+      {dragDropEnabled ? (
+        <td className="px-2 py-3 sm:px-3">
+          <button
+            type="button"
+            onPointerDown={onGripPointerDown}
+            disabled={reorderingId !== null || draggingBannerId !== null}
+            className={cn(
+              "flex h-9 w-9 touch-none items-center justify-center rounded-lg border border-dashed border-border text-muted-foreground transition-colors",
+              "hover:border-primary/40 hover:bg-primary/5 hover:text-primary",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+              draggingBannerId === banner.id &&
+                "cursor-grabbing border-primary/50 bg-primary/10 text-primary"
+            )}
+            aria-label={`Drag ${banner.title} to reorder`}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        </td>
+      ) : null}
+      <td className="px-4 py-3 sm:px-6">
+        <BannerImageThumb image={banner.image} title={banner.title} />
+      </td>
+      <td className="px-4 py-3 sm:px-6">
+        <p className="max-w-[12rem] font-medium leading-snug sm:max-w-xs">{banner.title}</p>
+      </td>
+      <td className="px-4 py-3 sm:px-6">
+        <Badge variant="outline">{banner.priority}</Badge>
+      </td>
+      <td className="px-4 py-3 sm:px-6">
+        <p className="max-w-[10rem] text-sm text-muted-foreground sm:max-w-xs">
+          {formatRedirectLabel(banner)}
+        </p>
+      </td>
+      <td className="px-4 py-3 text-sm text-muted-foreground sm:px-6">
+        {createdLabel ?? "—"}
+      </td>
+      <td className="px-4 py-3 sm:px-6">
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 shrink-0"
+            onClick={onEdit}
+            aria-label={`Edit ${banner.title}`}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 shrink-0"
+            onClick={onDelete}
+            aria-label={`Delete ${banner.title}`}
+          >
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
         </div>
+      </td>
+    </tr>
+  );
+}
+
+function TableRowsSkeleton({
+  rows = 5,
+  showDragColumn,
+}: {
+  rows?: number;
+  showDragColumn: boolean;
+}) {
+  return (
+    <>
+      {Array.from({ length: rows }).map((_, index) => (
+        <tr key={index}>
+          {showDragColumn ? (
+            <td className="px-2 py-3 sm:px-3">
+              <Skeleton className="h-9 w-9 rounded-lg" />
+            </td>
+          ) : null}
+          <td className="px-4 py-3 sm:px-6">
+            <Skeleton className="h-14 w-20 rounded-lg" />
+          </td>
+          <td className="px-4 py-3 sm:px-6">
+            <Skeleton className="h-4 w-36" />
+          </td>
+          <td className="px-4 py-3 sm:px-6">
+            <Skeleton className="h-6 w-10 rounded-full" />
+          </td>
+          <td className="px-4 py-3 sm:px-6">
+            <Skeleton className="h-4 w-28" />
+          </td>
+          <td className="px-4 py-3 sm:px-6">
+            <Skeleton className="h-4 w-24" />
+          </td>
+          <td className="px-4 py-3 sm:px-6">
+            <div className="flex gap-2">
+              <Skeleton className="h-9 w-9 rounded-md" />
+              <Skeleton className="h-9 w-9 rounded-md" />
+            </div>
+          </td>
+        </tr>
       ))}
-    </div>
+    </>
   );
 }
 
@@ -138,9 +417,18 @@ function getBannerDragStyle(
 }
 
 export function BannerManagement({ title, basePath }: BannerManagementProps) {
-  const [banners, setBanners] = useState<Banner[]>([]);
+  const [banners, setBanners] = useState<PaginatedData<Banner>>({
+    results: [],
+    pagination: defaultPagination,
+  });
   const [loading, setLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<BannerSortBy | null>(null);
+  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [createOpen, setCreateOpen] = useState(false);
   const [editBanner, setEditBanner] = useState<Banner | null>(null);
   const [editLoading, setEditLoading] = useState(false);
@@ -148,37 +436,143 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
   const [deleting, setDeleting] = useState(false);
   const [reorderingId, setReorderingId] = useState<number | null>(null);
   const [dragDropEnabled, setDragDropEnabled] = useState(false);
+  const [reorderBanners, setReorderBanners] = useState<Banner[] | null>(null);
   const [activeDrag, setActiveDrag] = useState<ActiveBannerDrag | null>(null);
   const [draggingBannerId, setDraggingBannerId] = useState<number | null>(null);
 
-  const rowRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const rowRefs = useRef<Map<number, HTMLTableRowElement>>(new Map());
   const activeDragRef = useRef<ActiveBannerDrag | null>(null);
-  const bannersRef = useRef(banners);
+  const bannersRef = useRef(banners.results);
+  const prevSearchRef = useRef("");
+
+  const bannerList = banners.results;
+  const displayList = dragDropEnabled && reorderBanners ? reorderBanners : bannerList;
+  const canReorder = sortBy === "priority" && sortOrder === "asc" && !search;
+  const showDragColumn = canReorder && dragDropEnabled && displayList.length > 1;
+  const isReorderView = dragDropEnabled && reorderBanners !== null;
 
   useEffect(() => {
     activeDragRef.current = activeDrag;
   }, [activeDrag]);
 
   useEffect(() => {
-    bannersRef.current = banners;
-  }, [banners]);
+    bannersRef.current = displayList;
+  }, [displayList]);
 
   const fetchBanners = useCallback(async () => {
+    if (dragDropEnabled) return;
+
     setLoading(true);
     try {
-      const data = await bannersService.getBanners();
-      setBanners(sortBanners(data));
+      const data = await bannersService.getBanners({
+        page,
+        limit,
+        search: search || undefined,
+        sort_by: sortBy ?? undefined,
+        sort_order: sortBy ? sortOrder : undefined,
+      });
+      setBanners(data);
       setHasLoaded(true);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load banners");
     } finally {
       setLoading(false);
     }
+  }, [page, limit, search, sortBy, sortOrder, dragDropEnabled]);
+
+  const exitReorderMode = useCallback(async () => {
+    setDragDropEnabled(false);
+    setReorderBanners(null);
+    setActiveDrag(null);
+    setDraggingBannerId(null);
+    setLoading(true);
+    try {
+      const data = await bannersService.getBanners({
+        page,
+        limit,
+        search: search || undefined,
+        sort_by: sortBy ?? undefined,
+        sort_order: sortBy ? sortOrder : undefined,
+      });
+      setBanners(data);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to load banners");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, limit, search, sortBy, sortOrder]);
+
+  const enterReorderMode = useCallback(async () => {
+    setLoading(true);
+    try {
+      const summary = await bannersService.getBanners({
+        page: 1,
+        limit: 1,
+        sort_by: "priority",
+        sort_order: "asc",
+      });
+      const total = summary.pagination.total;
+
+      if (total <= 1) {
+        setDragDropEnabled(false);
+        setReorderBanners(null);
+        setBanners(summary);
+        return;
+      }
+
+      const data = await bannersService.getBanners({
+        page: 1,
+        limit: total,
+        sort_by: "priority",
+        sort_order: "asc",
+      });
+      setReorderBanners(data.results);
+      setBanners((current) => ({
+        ...current,
+        pagination: data.pagination,
+      }));
+      setDragDropEnabled(true);
+      setPage(1);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to load banners for reordering");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  const toggleDragReorder = useCallback(async () => {
+    if (dragDropEnabled) {
+      await exitReorderMode();
+      return;
+    }
+
+    await enterReorderMode();
+  }, [dragDropEnabled, enterReorderMode, exitReorderMode]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (searchInput !== prevSearchRef.current) {
+        prevSearchRef.current = searchInput;
+        setSearch(searchInput);
+        setPage(1);
+      }
+    }, 300);
+
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
 
   useEffect(() => {
     void fetchBanners();
   }, [fetchBanners]);
+
+  useEffect(() => {
+    if (!canReorder) {
+      setDragDropEnabled(false);
+      setReorderBanners(null);
+      setActiveDrag(null);
+      setDraggingBannerId(null);
+    }
+  }, [canReorder]);
 
   const toCreatePayload = (data: BannerFormData): CreateBannerInput => {
     if (!(data.image instanceof File)) {
@@ -190,7 +584,7 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
       image: data.image,
       redirect_type: data.redirect_type,
       redirect_id: data.redirect_id,
-      priority: getNextPriority(banners),
+      priority: getNextPriority(bannerList, banners.pagination.total),
     };
   };
 
@@ -223,12 +617,13 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
   };
 
   const applyReorder = async (reordered: Banner[], activeId: number) => {
-    const withPriorities = applySequentialPriorities(reordered);
+    const startPriority = 1;
+    const withPriorities = applySequentialPriorities(reordered, startPriority);
 
     setReorderingId(activeId);
     try {
-      await persistPriorityOrder(withPriorities, banners);
-      setBanners(withPriorities);
+      await persistPriorityOrder(withPriorities, bannersRef.current);
+      setReorderBanners(withPriorities);
       toast.success("Banner order updated");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update banner order");
@@ -237,21 +632,7 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
     }
   };
 
-  const moveBanner = async (bannerId: number, direction: "up" | "down") => {
-    const currentIndex = banners.findIndex((banner) => banner.id === bannerId);
-    if (currentIndex === -1) return;
-
-    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-    if (targetIndex < 0 || targetIndex >= banners.length) return;
-
-    const reordered = [...banners];
-    const [moved] = reordered.splice(currentIndex, 1);
-    reordered.splice(targetIndex, 0, moved);
-
-    await applyReorder(reordered, bannerId);
-  };
-
-  const setRowRef = useCallback((bannerId: number, element: HTMLDivElement | null) => {
+  const setRowRef = useCallback((bannerId: number, element: HTMLTableRowElement | null) => {
     if (element) {
       rowRefs.current.set(bannerId, element);
       return;
@@ -320,12 +701,13 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
     const [moved] = reordered.splice(drag.startIndex, 1);
     reordered.splice(drag.currentIndex, 0, moved);
 
-    const withPriorities = applySequentialPriorities(reordered);
+    const startPriority = 1;
+    const withPriorities = applySequentialPriorities(reordered, startPriority);
 
     setReorderingId(drag.id);
     try {
       await persistPriorityOrder(withPriorities, currentBanners);
-      setBanners(withPriorities);
+      setReorderBanners(withPriorities);
       toast.success("Banner order updated");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update banner order");
@@ -384,12 +766,21 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
     };
   }, [draggingBannerId, finishDrag]);
 
+  const refreshBanners = useCallback(async () => {
+    if (dragDropEnabled) {
+      await enterReorderMode();
+      return;
+    }
+
+    await fetchBanners();
+  }, [dragDropEnabled, enterReorderMode, fetchBanners]);
+
   const handleCreate = async (data: BannerFormData) => {
     try {
       await bannersService.createBanner(toCreatePayload(data));
       toast.success("Banner created successfully");
       setCreateOpen(false);
-      await fetchBanners();
+      await refreshBanners();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to create banner");
     }
@@ -402,7 +793,7 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
       await bannersService.updateBanner(editBanner.id, toUpdatePayload(data));
       toast.success("Banner updated successfully");
       setEditBanner(null);
-      await fetchBanners();
+      await refreshBanners();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update banner");
     }
@@ -416,7 +807,14 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
       await bannersService.deleteBanner(deleteBanner.id);
       toast.success("Banner deleted successfully");
       setDeleteBanner(null);
-      await fetchBanners();
+
+      if (!dragDropEnabled) {
+        const nextPage =
+          bannerList.length === 1 && page > 1 ? page - 1 : page;
+        setPage(nextPage);
+      }
+
+      await refreshBanners();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete banner");
     } finally {
@@ -439,6 +837,21 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
     }
   };
 
+  const handleColumnSort = (column: BannerSortBy) => {
+    if (isReorderView) return;
+
+    setPage(1);
+
+    const next = nextColumnSortState({
+      column,
+      sortBy,
+      sortOrder,
+      defaultOrder: getDefaultSortOrder(column),
+    });
+    setSortBy(next.sortBy);
+    setSortOrder(next.sortOrder);
+  };
+
   if (!hasLoaded && loading) {
     return <DashboardSkeleton />;
   }
@@ -454,7 +867,7 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
         />
         <h1 className="mt-2 text-xl font-bold tracking-tight md:text-2xl">{title}</h1>
         <p className="mt-1 text-sm text-muted-foreground md:text-base">
-          Manage homepage banners. Use arrows or enable drag and drop to control display order.
+          Manage homepage banners. Enable drag and drop to control display order.
         </p>
       </div>
 
@@ -463,26 +876,21 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="flex items-center gap-2 text-base">
               <Megaphone className="h-4 w-4 shrink-0" />
-              Banners ({loading ? "…" : banners.length})
+              Banners ({loading ? "…" : banners.pagination.total})
             </CardTitle>
             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-              {banners.length > 1 ? (
+              {canReorder && banners.pagination.total > 1 ? (
                 <Button
                   type="button"
                   size="sm"
                   variant={dragDropEnabled ? "primary" : "outline"}
-                  onClick={() => {
-                    setDragDropEnabled((current) => !current);
-                    setActiveDrag(null);
-                    setDraggingBannerId(null);
-                  }}
-                  disabled={reorderingId !== null || draggingBannerId !== null}
+                  onClick={() => void toggleDragReorder()}
+                  disabled={reorderingId !== null || draggingBannerId !== null || loading}
                   aria-pressed={dragDropEnabled}
                   className="w-full sm:w-auto"
                 >
                   <GripVertical className="h-4 w-4" />
-                  <span className="sm:hidden">Reorder</span>
-                  <span className="hidden sm:inline">Drag to Reorder</span>
+                  {dragDropEnabled ? "Done Reordering" : "Drag to Reorder"}
                 </Button>
               ) : null}
               <Button size="sm" onClick={() => setCreateOpen(true)} className="w-full sm:w-auto">
@@ -491,140 +899,117 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
               </Button>
             </div>
           </div>
-          {dragDropEnabled && banners.length > 1 ? (
+
+          <div className="relative w-full sm:max-w-md">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="search"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder="Search banners..."
+              disabled={isReorderView}
+              className="h-11 w-full rounded-xl border border-border bg-background/50 pl-10 pr-4 text-sm focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+          </div>
+
+          {isReorderView ? (
+            <p className="text-sm text-muted-foreground">
+              Showing all {displayList.length} banners. Drag to set homepage order, then
+              click Done Reordering to return to the paginated view.
+            </p>
+          ) : dragDropEnabled && canReorder && displayList.length > 1 ? (
             <p className="text-sm text-muted-foreground">
               Drag banners by the handle to change their order.
+            </p>
+          ) : !canReorder && banners.pagination.total > 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Sort by Priority (ascending) and clear search to reorder banners.
             </p>
           ) : null}
         </CardHeader>
 
         <CardContent className="p-0">
-          {loading && banners.length === 0 ? (
-            <div className="px-3 py-6 sm:px-6 sm:py-8">
-              <ListRowsSkeleton />
+          {loading && displayList.length === 0 ? (
+            <div className="overflow-x-auto px-4 py-4 sm:px-0">
+              <table className="w-full min-w-[52rem] text-sm">
+                <BannerTableHeader
+                  sortBy={sortBy}
+                  sortOrder={sortOrder}
+                  onSort={handleColumnSort}
+                  showDragColumn={showDragColumn}
+                />
+                <tbody className="divide-y divide-border">
+                  <TableRowsSkeleton showDragColumn={showDragColumn} />
+                </tbody>
+              </table>
             </div>
-          ) : banners.length === 0 ? (
+          ) : displayList.length === 0 ? (
             <EmptyState
               icon={<Megaphone className="h-8 w-8 text-muted-foreground" />}
-              title="No banners yet"
-              description="Create your first promotional banner for the marketplace."
+              title={search ? "No banners found" : "No banners yet"}
+              description={
+                search
+                  ? "Try adjusting your search or sort."
+                  : "Create your first promotional banner for the marketplace."
+              }
               action={
-                <Button onClick={() => setCreateOpen(true)}>
-                  <Plus className="h-4 w-4" />
-                  Add Banner
-                </Button>
+                !search ? (
+                  <Button onClick={() => setCreateOpen(true)}>
+                    <Plus className="h-4 w-4" />
+                    Add Banner
+                  </Button>
+                ) : undefined
               }
             />
           ) : (
-            <div
-              className={cn(
-                "relative divide-y divide-border",
-                draggingBannerId !== null && "select-none"
-              )}
-            >
-              {loading ? (
-                <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60 backdrop-blur-[1px]">
-                  <Loader />
-                </div>
-              ) : null}
-
-              {banners.map((banner, index) => (
+            <>
+              <TableLoadingOverlay loading={loading}>
                 <div
-                  key={banner.id}
-                  ref={(element) => setRowRef(banner.id, element)}
-                  style={getBannerDragStyle(banner.id, index, activeDrag)}
                   className={cn(
-                    "relative bg-card px-3 py-3 will-change-transform sm:px-6 sm:py-4",
-                    dragDropEnabled && draggingBannerId === null && reorderingId === null && "hover:bg-muted/20",
-                    activeDrag?.id === banner.id &&
-                      "rounded-xl bg-card ring-1 ring-primary/20"
+                    "overflow-x-auto",
+                    draggingBannerId !== null && "select-none"
                   )}
                 >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-                    <div className="flex min-w-0 flex-1 items-start gap-3">
-                      {dragDropEnabled ? (
-                        <button
-                          type="button"
-                          onPointerDown={(event) => handleGripPointerDown(event, banner.id, index)}
-                          disabled={reorderingId !== null || draggingBannerId !== null}
-                          className={cn(
-                            "mt-0.5 flex h-11 w-11 shrink-0 touch-none items-center justify-center rounded-lg border border-dashed border-border text-muted-foreground transition-colors sm:h-10 sm:w-8",
-                            "hover:border-primary/40 hover:bg-primary/5 hover:text-primary",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-                            draggingBannerId === banner.id &&
-                              "cursor-grabbing border-primary/50 bg-primary/10 text-primary"
-                          )}
-                          aria-label={`Drag ${banner.title} to reorder`}
-                        >
-                          <GripVertical className="h-4 w-4" />
-                        </button>
-                      ) : null}
-
-                      <BannerImage image={banner.image} title={banner.title} />
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-semibold leading-snug">{banner.title}</p>
-                          <Badge variant="outline" className="shrink-0">
-                            Position {index + 1}
-                          </Badge>
-                        </div>
-                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                          {banner.redirect_type && banner.redirect_id
-                            ? `Redirects to ${banner.redirect_type} #${banner.redirect_id}`
-                            : "No redirect configured"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border/70 pt-3 sm:border-0 sm:pt-0">
-                      {!dragDropEnabled ? (
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-10 w-10 sm:h-10 sm:w-10"
-                            disabled={index === 0 || reorderingId !== null}
-                            onClick={() => void moveBanner(banner.id, "up")}
-                            aria-label={`Move ${banner.title} up`}
-                          >
-                            <ChevronUp className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-10 w-10 sm:h-10 sm:w-10"
-                            disabled={index === banners.length - 1 || reorderingId !== null}
-                            onClick={() => void moveBanner(banner.id, "down")}
-                            aria-label={`Move ${banner.title} down`}
-                          >
-                            <ChevronDown className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ) : null}
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-10 w-10"
-                        onClick={() => void openEdit(banner)}
-                        aria-label={`Edit ${banner.title}`}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-10 w-10"
-                        onClick={() => setDeleteBanner(banner)}
-                        aria-label={`Delete ${banner.title}`}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
+                  <table className="w-full min-w-[52rem] text-sm">
+                    <BannerTableHeader
+                      sortBy={sortBy}
+                      sortOrder={sortOrder}
+                      onSort={handleColumnSort}
+                      showDragColumn={showDragColumn}
+                    />
+                    <tbody className="divide-y divide-border">
+                      {displayList.map((banner, index) => (
+                        <BannerTableRow
+                          key={banner.id}
+                          rowRef={(element) => setRowRef(banner.id, element)}
+                          banner={banner}
+                          dragDropEnabled={showDragColumn}
+                          reorderingId={reorderingId}
+                          draggingBannerId={draggingBannerId}
+                          activeDrag={activeDrag}
+                          dragStyle={getBannerDragStyle(banner.id, index, activeDrag)}
+                          onGripPointerDown={(event) =>
+                            handleGripPointerDown(event, banner.id, index)
+                          }
+                          onEdit={() => void openEdit(banner)}
+                          onDelete={() => setDeleteBanner(banner)}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              ))}
-            </div>
+              </TableLoadingOverlay>
+
+              {!isReorderView ? (
+                <div className="border-t border-border px-4 py-3 sm:px-6 sm:py-4">
+                  <Pagination
+                    pagination={banners.pagination}
+                    onPageChange={setPage}
+                    className="pt-0"
+                  />
+                </div>
+              ) : null}
+            </>
           )}
         </CardContent>
       </Card>

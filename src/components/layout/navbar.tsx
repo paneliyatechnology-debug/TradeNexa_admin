@@ -1,6 +1,7 @@
 "use client";
 
 import { ProfileDropdown } from "@/components/layout/profile-dropdown";
+import { RoleSwitcher } from "@/components/layout/role-switcher";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ROLE_COLORS, ROLE_LABELS } from "@/constants/roles";
@@ -15,7 +16,7 @@ interface NavbarProps {
 
 export function Navbar({ title }: NavbarProps) {
   const { toggle } = useSidebar();
-  const { role } = useAuth();
+  const { role, isPreviewRole } = useAuth();
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-background/80 backdrop-blur-xl px-4 lg:px-6">
@@ -33,10 +34,13 @@ export function Navbar({ title }: NavbarProps) {
         <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
       )}
 
-      <div className="flex items-center gap-1 ml-auto">
+      <div className="flex items-center gap-2 ml-auto">
+        <RoleSwitcher />
+
         {role && (
           <Badge className={cn("hidden sm:inline-flex", ROLE_COLORS[role])}>
             {ROLE_LABELS[role]}
+            {isPreviewRole ? " (preview)" : ""}
           </Badge>
         )}
 

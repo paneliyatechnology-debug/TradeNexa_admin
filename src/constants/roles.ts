@@ -1,6 +1,12 @@
 import type { UserRole } from "@/types/auth";
 import { ROLE_BASE_MAP } from "@/config/routes";
 
+export const ALL_USER_ROLES: UserRole[] = [
+  "SUPER_ADMIN",
+  "ADMIN",
+  "SUPPORT_ADMIN",
+];
+
 export const ROLE_LABELS: Record<UserRole, string> = {
   SUPER_ADMIN: "Super Admin",
   ADMIN: "Admin",

@@ -12,14 +12,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 export function Sidebar() {
-  const { user, logout } = useAuth();
+  const { user, role, logout } = useAuth();
   const { isOpen, isCollapsed, close, toggleCollapse } = useSidebar();
   const pathname = usePathname();
 
-  if (!user) return null;
+  if (!user || !role) return null;
 
-  const basePath = ROLE_BASE_MAP[user.role];
-  const navItems = getNavItemsForRole(user.role).map((item) => ({
+  const basePath = ROLE_BASE_MAP[role];
+  const navItems = getNavItemsForRole(role).map((item) => ({
     ...item,
     href: `${basePath}/${item.slug}`,
   }));

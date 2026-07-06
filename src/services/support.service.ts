@@ -1,4 +1,4 @@
-/** Uses authenticated apiClientGet — add `/api/support/tickets` proxy route when implementing. */
+/** Uses authenticated apiClientGet with API_BASE_URL when implementing. */
 export const supportService = {
   async getTickets() {
     // return apiClientGet("/api/support/tickets");

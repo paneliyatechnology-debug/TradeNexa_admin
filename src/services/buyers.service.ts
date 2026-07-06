@@ -1,4 +1,4 @@
-/** Uses authenticated apiClientGet — add `/api/buyers` proxy route when implementing. */
+/** Uses authenticated apiClientGet with API_BASE_URL when implementing. */
 export const buyersService = {
   async getAll() {
     // return apiClientGet("/api/buyers");

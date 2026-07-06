@@ -11,7 +11,7 @@ export const BACKEND_URL = normalizeBaseUrl(
     DEFAULT_BACKEND_URL
 );
 
-/** Full API base used by server proxy routes: {BACKEND_URL}/api/v1 */
+/** Full backend API base: {BACKEND_URL}/api/v1 */
 export const API_BASE_URL = `${BACKEND_URL}/api/v1`;
 
 export const API_ENDPOINTS = {
@@ -33,6 +33,10 @@ export const API_ENDPOINTS = {
   products: {
     list: "/products",
     detail: (id: number | string) => `/products/${id}`,
+  },
+  banners: {
+    list: "/banners",
+    detail: (id: number | string) => `/banners/${id}`,
   },
   users: {
     list: "/users",
@@ -59,52 +63,5 @@ export const API_ENDPOINTS = {
   },
   settings: {
     general: "/settings/general",
-  },
-} as const;
-
-/** Same-origin proxy paths — use in browser-side services to avoid CORS. */
-export const CLIENT_API_ROUTES = {
-  auth: {
-    login: "/api/auth/login",
-    logout: "/api/auth/logout",
-    profile: "/api/auth/profile",
-    refresh: "/api/auth/refresh-token",
-  },
-  categories: {
-    list: "/api/categories",
-    detail: (id: number | string) => `/api/categories/${id}`,
-    subcategories: (id: number | string) => `/api/categories/${id}/subcategories`,
-    subcategory: (categoryId: number | string, subId: number | string) =>
-      `/api/categories/${categoryId}/subcategories/${subId}`,
-  },
-  products: {
-    list: "/api/products",
-    detail: (id: number | string) => `/api/products/${id}`,
-  },
-  users: {
-    list: "/api/users",
-    detail: (id: string) => `/api/users/${id}`,
-  },
-  sellers: {
-    list: "/api/sellers",
-    detail: (id: string) => `/api/sellers/${id}`,
-  },
-  buyers: {
-    list: "/api/buyers",
-    detail: (id: string) => `/api/buyers/${id}`,
-  },
-  orders: {
-    list: "/api/orders",
-    detail: (id: string) => `/api/orders/${id}`,
-  },
-  support: {
-    tickets: "/api/support/tickets",
-    ticket: (id: string) => `/api/support/tickets/${id}`,
-  },
-  reports: {
-    overview: "/api/reports/overview",
-  },
-  settings: {
-    general: "/api/settings/general",
   },
 } as const;

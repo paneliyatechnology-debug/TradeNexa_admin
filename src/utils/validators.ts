@@ -49,3 +49,41 @@ export function getCategoryFormSchema(options?: {
 export const createCategorySchema = getCategoryFormSchema();
 
 export type CreateCategoryFormData = z.infer<typeof categoryFormBaseSchema>;
+
+const bannerRedirectTypes = ["category", "product"] as const;
+
+const bannerFormBaseSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(1, "Title is required")
+    .max(120, "Title must be 120 characters or less"),
+  image: z.instanceof(File).nullable().optional(),
+  clear_image: z.boolean(),
+  redirect_type: z.enum(bannerRedirectTypes).nullable(),
+  redirect_id: z.number().int().positive().nullable(),
+});
+
+export function getBannerFormSchema(options?: {
+  isEdit?: boolean;
+  existingImageUrl?: string | null;
+}) {
+  return bannerFormBaseSchema.superRefine((data, ctx) => {
+    const hasNewImage = data.image instanceof File;
+    const hasExistingImage = Boolean(
+      options?.isEdit && options.existingImageUrl && !data.clear_image
+    );
+
+    if (!hasNewImage && !hasExistingImage) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Banner image is required",
+        path: ["image"],
+      });
+    }
+  });
+}
+
+export type BannerFormData = z.infer<typeof bannerFormBaseSchema>;
+export const BANNER_REDIRECT_TYPES = bannerRedirectTypes;
+

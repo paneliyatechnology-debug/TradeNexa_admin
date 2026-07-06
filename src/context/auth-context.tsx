@@ -11,6 +11,12 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import {
+  clearPreviewRole,
+  getPreviewRole,
+  setPreviewRole,
+  subscribePreviewRole,
+} from "@/lib/preview-role";
 import { ROLE_DASHBOARD_MAP, ROUTES } from "@/config/routes";
 import { useTokenRefresh } from "@/hooks/use-token-refresh";
 import {
@@ -28,10 +34,16 @@ import { ADMIN_ACCESS_DENIED_MESSAGE } from "@/utils/map-backend-role";
 
 interface AuthContextValue {
   user: User | null;
+  /** Effective role used for navigation and route access (preview overrides login role). */
   role: UserRole | null;
+  /** Role returned from the backend after login. */
+  actualRole: UserRole | null;
+  isPreviewRole: boolean;
   token: string | null;
   loading: boolean;
   isAuthenticated: boolean;
+  switchPreviewRole: (role: UserRole) => void;
+  resetPreviewRole: () => void;
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -50,10 +62,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => true,
     () => false
   );
+  const previewRole = useSyncExternalStore(
+    subscribePreviewRole,
+    getPreviewRole,
+    () => null
+  );
   const [sessionReady, setSessionReady] = useState(false);
 
   const user = stored?.user ?? null;
   const token = stored?.token ?? null;
+  const actualRole = user?.role ?? null;
+  const role = previewRole ?? actualRole;
+  const isPreviewRole = Boolean(previewRole && previewRole !== actualRole);
   const isAuthenticated = !!user && !!token;
 
   useEffect(() => {
@@ -146,6 +166,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           refreshToken: response.refreshToken,
         });
 
+        clearPreviewRole();
         emitAuthChange();
         toast.success(`Welcome back, ${response.user.name}!`);
         router.replace(ROLE_DASHBOARD_MAP[response.user.role]);
@@ -172,6 +193,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await authService.logout(snapshot.token, snapshot.refreshToken);
       }
     } finally {
+      clearPreviewRole();
       clearAuth();
       emitAuthChange();
       toast.success("Logged out successfully");
@@ -179,17 +201,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [router]);
 
+  const switchPreviewRole = useCallback(
+    (nextRole: UserRole) => {
+      setPreviewRole(nextRole);
+      toast.info(`Previewing ${nextRole.replace("_", " ").toLowerCase()} panel`);
+      router.replace(ROLE_DASHBOARD_MAP[nextRole]);
+    },
+    [router]
+  );
+
+  const resetPreviewRole = useCallback(() => {
+    if (!actualRole) return;
+
+    clearPreviewRole();
+    toast.info("Using your actual login role");
+    router.replace(ROLE_DASHBOARD_MAP[actualRole]);
+  }, [actualRole, router]);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
-      role: user?.role ?? null,
+      role,
+      actualRole,
+      isPreviewRole,
       token,
       loading: !hydrated || !sessionReady,
       isAuthenticated,
+      switchPreviewRole,
+      resetPreviewRole,
       login,
       logout,
     }),
-    [user, token, hydrated, sessionReady, isAuthenticated, login, logout]
+    [
+      user,
+      role,
+      actualRole,
+      isPreviewRole,
+      token,
+      hydrated,
+      sessionReady,
+      isAuthenticated,
+      switchPreviewRole,
+      resetPreviewRole,
+      login,
+      logout,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

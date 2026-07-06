@@ -1,3 +1,4 @@
+export { bannersService } from "./banners.service";
 export { authService } from "./auth.service";
 export { categoriesService } from "./categories.service";
 export { usersService } from "./users.service";

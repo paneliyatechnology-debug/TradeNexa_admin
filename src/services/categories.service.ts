@@ -1,4 +1,4 @@
-import { CLIENT_API_ROUTES } from "@/config/api";
+import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import type { CategoryListParams, PaginatedData, SubcategoryListParams } from "@/types/api";
 import type {
   Category,
@@ -14,6 +14,14 @@ import {
   apiClientPostFormData,
   apiClientPutFormData,
 } from "@/utils/api-client";
+
+const CATEGORIES_LIST_URL = `${API_BASE_URL}${API_ENDPOINTS.categories.list}`;
+const categoryDetailUrl = (id: number | string) =>
+  `${API_BASE_URL}${API_ENDPOINTS.categories.detail(id)}`;
+const categorySubcategoriesUrl = (id: number | string) =>
+  `${API_BASE_URL}${API_ENDPOINTS.categories.subcategories(id)}`;
+const categorySubcategoryUrl = (categoryId: number | string, subId: number | string) =>
+  `${API_BASE_URL}${API_ENDPOINTS.categories.subcategory(categoryId, subId)}`;
 
 function buildCategoryFormData(
   payload: (CreateCategoryInput | UpdateCategoryInput) & {
@@ -44,23 +52,18 @@ export const categoriesService = {
   async getCategories(
     params: CategoryListParams = {}
   ): Promise<PaginatedData<Category>> {
-    return apiClientGet<PaginatedData<Category>>(
-      CLIENT_API_ROUTES.categories.list,
-      {
-        page: params.page ?? 1,
-        limit: params.limit ?? 10,
-        is_active: params.is_active,
-        search: params.search || undefined,
-        sort_by: params.sort_by,
-        sort_order: params.sort_order,
-      }
-    );
+    return apiClientGet<PaginatedData<Category>>(CATEGORIES_LIST_URL, {
+      page: params.page ?? 1,
+      limit: params.limit ?? 10,
+      is_active: params.is_active,
+      search: params.search || undefined,
+      sort_by: params.sort_by,
+      sort_order: params.sort_order,
+    });
   },
 
   async getCategory(categoryId: number): Promise<CategoryDetail> {
-    return apiClientGet<CategoryDetail>(
-      CLIENT_API_ROUTES.categories.detail(categoryId)
-    );
+    return apiClientGet<CategoryDetail>(categoryDetailUrl(categoryId));
   },
 
   async getSubcategories(
@@ -68,7 +71,7 @@ export const categoriesService = {
     params: SubcategoryListParams = {}
   ): Promise<PaginatedData<Subcategory>> {
     return apiClientGet<PaginatedData<Subcategory>>(
-      CLIENT_API_ROUTES.categories.subcategories(categoryId),
+      categorySubcategoriesUrl(categoryId),
       {
         page: params.page ?? 1,
         limit: params.limit ?? 10,
@@ -85,13 +88,13 @@ export const categoriesService = {
     subcategoryId: number
   ): Promise<SubcategoryDetail> {
     return apiClientGet<SubcategoryDetail>(
-      CLIENT_API_ROUTES.categories.subcategory(categoryId, subcategoryId)
+      categorySubcategoryUrl(categoryId, subcategoryId)
     );
   },
 
   async createCategory(payload: CreateCategoryInput): Promise<Category> {
     return apiClientPostFormData<Category>(
-      CLIENT_API_ROUTES.categories.list,
+      CATEGORIES_LIST_URL,
       buildCategoryFormData(payload)
     );
   },
@@ -101,7 +104,7 @@ export const categoriesService = {
     payload: CreateCategoryInput
   ): Promise<Subcategory> {
     return apiClientPostFormData<Subcategory>(
-      CLIENT_API_ROUTES.categories.subcategories(categoryId),
+      categorySubcategoriesUrl(categoryId),
       buildCategoryFormData(payload)
     );
   },
@@ -111,7 +114,7 @@ export const categoriesService = {
     payload: UpdateCategoryInput
   ): Promise<Category> {
     return apiClientPutFormData<Category>(
-      CLIENT_API_ROUTES.categories.detail(categoryId),
+      categoryDetailUrl(categoryId),
       buildCategoryFormData(payload)
     );
   },
@@ -122,20 +125,18 @@ export const categoriesService = {
     payload: UpdateCategoryInput
   ): Promise<Subcategory> {
     return apiClientPutFormData<Subcategory>(
-      CLIENT_API_ROUTES.categories.subcategory(categoryId, subcategoryId),
+      categorySubcategoryUrl(categoryId, subcategoryId),
       buildCategoryFormData(payload)
     );
   },
 
   async deleteCategory(categoryId: number): Promise<void> {
-    await apiClientDelete<null>(
-      CLIENT_API_ROUTES.categories.detail(categoryId)
-    );
+    await apiClientDelete<null>(categoryDetailUrl(categoryId));
   },
 
   async deleteSubcategory(categoryId: number, subcategoryId: number): Promise<void> {
     await apiClientDelete<null>(
-      CLIENT_API_ROUTES.categories.subcategory(categoryId, subcategoryId)
+      categorySubcategoryUrl(categoryId, subcategoryId)
     );
   },
 };

@@ -1,4 +1,4 @@
-import { CLIENT_API_ROUTES } from "@/config/api";
+import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import type { ApiResponse } from "@/types/api";
 import type {
   BackendLoginData,
@@ -9,10 +9,10 @@ import type { AuthResponse, LoginCredentials, User } from "@/types/auth";
 import { buildAuthorizationHeader } from "@/utils/auth-header";
 import { mapBackendRole } from "@/utils/map-backend-role";
 
-const LOGIN_URL = CLIENT_API_ROUTES.auth.login;
-const REFRESH_URL = CLIENT_API_ROUTES.auth.refresh;
-const LOGOUT_URL = CLIENT_API_ROUTES.auth.logout;
-const PROFILE_URL = CLIENT_API_ROUTES.auth.profile;
+const LOGIN_URL = `${API_BASE_URL}${API_ENDPOINTS.auth.login}`;
+const REFRESH_URL = `${API_BASE_URL}${API_ENDPOINTS.auth.refresh}`;
+const LOGOUT_URL = `${API_BASE_URL}${API_ENDPOINTS.auth.logout}`;
+const PROFILE_URL = `${API_BASE_URL}${API_ENDPOINTS.auth.profile}`;
 
 async function publicApiPost<T>(url: string, body: unknown): Promise<ApiResponse<T>> {
   const response = await fetch(url, {
@@ -73,10 +73,6 @@ function mapProfileToUser(profile: BackendProfile): User {
 }
 
 export const authService = {
-  /**
-   * POST /api/auth/login → Railway /admin/auth/login
-   * Then GET /api/auth/profile to verify admin role.
-   */
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     const json = await publicApiPost<BackendLoginData>(LOGIN_URL, {
       email: credentials.email,
@@ -93,7 +89,6 @@ export const authService = {
     };
   },
 
-  /** GET /api/auth/profile → Railway /auth/profile */
   async getProfile(token: string): Promise<BackendProfile> {
     const json = await authenticatedApiGet<BackendProfile>(PROFILE_URL, token);
     return json.data;

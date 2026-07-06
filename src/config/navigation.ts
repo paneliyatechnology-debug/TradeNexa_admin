@@ -58,7 +58,7 @@ const SUPER_ADMIN_NAV: RoleNavItem[] = [
   { label: "Subscription Plans", slug: "subscription-plans", icon: CreditCard, comingSoon: true },
   { label: "Payments", slug: "payments", icon: Wallet, comingSoon: true },
   { label: "Commission", slug: "commission", icon: Percent, comingSoon: true },
-  { label: "Advertisements", slug: "advertisements", icon: Megaphone, comingSoon: true },
+  { label: "Banners", slug: "banners", icon: Megaphone, comingSoon: false },
   { label: "CMS", slug: "cms", icon: Newspaper, comingSoon: true },
   { label: "Notifications", slug: "notifications", icon: Bell, comingSoon: true },
   { label: "Reports", slug: "reports", icon: BarChart3, comingSoon: true },

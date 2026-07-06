@@ -25,12 +25,14 @@ import {
   getAuthSnapshot,
   isRefreshTokenExpired,
   persistAuth,
+  shouldRefreshAccessToken,
   subscribeAuth,
   tryRefreshAccessToken,
 } from "@/lib/auth-session";
-import { authService } from "@/services/auth.service";
+import { authService, AuthServiceError } from "@/services/auth.service";
 import type { LoginCredentials, User, UserRole } from "@/types/auth";
 import { ADMIN_ACCESS_DENIED_MESSAGE } from "@/utils/map-backend-role";
+import { isJwtExpired } from "@/utils/jwt";
 
 interface AuthContextValue {
   user: User | null;
@@ -49,6 +51,22 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+function isDefinitiveSessionFailure(error: unknown): boolean {
+  if (error instanceof AuthServiceError) {
+    return error.status === 401 || error.status === 403;
+  }
+
+  if (error instanceof Error) {
+    return error.message === ADMIN_ACCESS_DENIED_MESSAGE;
+  }
+
+  return false;
+}
+
+function canKeepCachedSession(accessToken: string, snapshot: NonNullable<ReturnType<typeof getAuthSnapshot>>) {
+  return Boolean(snapshot.user && !isJwtExpired(accessToken));
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -95,21 +113,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        if (snapshot.refreshToken) {
-          if (isRefreshTokenExpired()) {
-            clearAuth();
-            emitAuthChange();
-            toast.error("Your session has expired after 7 days. Please log in again.");
-            router.replace(ROUTES.login);
-            setSessionReady(true);
-            return;
-          }
+        if (snapshot.refreshToken && isRefreshTokenExpired()) {
+          clearAuth();
+          emitAuthChange();
+          toast.error("Your session has expired after 7 days. Please log in again.");
+          router.replace(ROUTES.login);
+          setSessionReady(true);
+          return;
+        }
 
+        let accessToken = snapshot.token;
+
+        if (snapshot.refreshToken && shouldRefreshAccessToken()) {
           const refreshFn = (refreshToken: string) => authService.refreshToken(refreshToken);
           const newToken = await tryRefreshAccessToken(refreshFn);
           if (cancelled) return;
 
-          if (!newToken) {
+          if (newToken) {
+            accessToken = newToken;
+          } else if (isJwtExpired(snapshot.token)) {
+            clearAuth();
+            emitAuthChange();
             toast.error("Your session has expired. Please log in again.");
             router.replace(ROUTES.login);
             setSessionReady(true);
@@ -117,16 +141,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        const currentSnapshot = getAuthSnapshot();
-        const accessToken = currentSnapshot?.token ?? snapshot.token;
-        const validatedUser = await authService.validateSession(accessToken);
-        if (cancelled) return;
+        const currentSnapshot = getAuthSnapshot() ?? snapshot;
 
-        persistAuth({
-          ...(currentSnapshot ?? snapshot),
-          user: validatedUser,
-        });
-        emitAuthChange();
+        try {
+          const validatedUser = await authService.validateSession(accessToken);
+          if (cancelled) return;
+
+          persistAuth({
+            ...currentSnapshot,
+            token: accessToken,
+            user: validatedUser,
+          });
+          emitAuthChange();
+        } catch (error) {
+          if (cancelled) return;
+
+          if (isDefinitiveSessionFailure(error)) {
+            throw error;
+          }
+
+          if (canKeepCachedSession(accessToken, currentSnapshot)) {
+            setSessionReady(true);
+            return;
+          }
+
+          throw error;
+        }
+
         setSessionReady(true);
       } catch (error) {
         if (cancelled) return;

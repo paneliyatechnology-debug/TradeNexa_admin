@@ -1,3 +1,5 @@
+export { offersService } from "./offers.service";
+export { brandsService } from "./brands.service";
 export { bannersService } from "./banners.service";
 export { authService } from "./auth.service";
 export { categoriesService } from "./categories.service";

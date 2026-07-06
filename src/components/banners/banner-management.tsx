@@ -55,7 +55,7 @@ function BannerImage({ image, title }: { image: string | null; title: string }) 
 
   if (!src) {
     return (
-      <div className="flex h-14 w-24 shrink-0 items-center justify-center rounded-lg bg-muted/40 text-muted-foreground">
+      <div className="flex h-16 w-[5.5rem] shrink-0 items-center justify-center rounded-lg bg-muted/40 text-muted-foreground sm:h-14 sm:w-24">
         <ImageIcon className="h-5 w-5" />
       </div>
     );
@@ -65,7 +65,7 @@ function BannerImage({ image, title }: { image: string | null; title: string }) 
     <img
       src={src}
       alt={title}
-      className="h-14 w-24 shrink-0 rounded-lg border border-border bg-background object-cover"
+      className="h-16 w-[5.5rem] shrink-0 rounded-lg border border-border bg-background object-cover sm:h-14 sm:w-24"
       referrerPolicy="no-referrer"
     />
   );
@@ -75,8 +75,8 @@ function ListRowsSkeleton({ rows = 4 }: { rows?: number }) {
   return (
     <div className="divide-y divide-border">
       {Array.from({ length: rows }).map((_, index) => (
-        <div key={index} className="flex items-center gap-4 px-4 py-4 sm:px-6">
-          <Skeleton className="h-14 w-24 shrink-0 rounded-lg" />
+        <div key={index} className="flex items-start gap-3 px-3 py-3 sm:items-center sm:gap-4 sm:px-6 sm:py-4">
+          <Skeleton className="h-16 w-[5.5rem] shrink-0 rounded-lg sm:h-14 sm:w-24" />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-4 w-40" />
             <Skeleton className="h-3 w-56" />
@@ -444,7 +444,7 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div>
         <Breadcrumb
           items={[
@@ -452,20 +452,20 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
             { label: title },
           ]}
         />
-        <h1 className="mt-2 text-2xl font-bold tracking-tight">{title}</h1>
-        <p className="mt-1 text-muted-foreground">
+        <h1 className="mt-2 text-xl font-bold tracking-tight md:text-2xl">{title}</h1>
+        <p className="mt-1 text-sm text-muted-foreground md:text-base">
           Manage homepage banners. Use arrows or enable drag and drop to control display order.
         </p>
       </div>
 
-      <Card>
-        <CardHeader className="space-y-4">
-          <div className="flex flex-row flex-wrap items-center justify-between gap-4">
+      <Card className="overflow-hidden">
+        <CardHeader className="space-y-4 p-4 sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Megaphone className="h-4 w-4" />
+              <Megaphone className="h-4 w-4 shrink-0" />
               Banners ({loading ? "…" : banners.length})
             </CardTitle>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
               {banners.length > 1 ? (
                 <Button
                   type="button"
@@ -478,12 +478,14 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
                   }}
                   disabled={reorderingId !== null || draggingBannerId !== null}
                   aria-pressed={dragDropEnabled}
+                  className="w-full sm:w-auto"
                 >
                   <GripVertical className="h-4 w-4" />
-                  Drag to Reorder
+                  <span className="sm:hidden">Reorder</span>
+                  <span className="hidden sm:inline">Drag to Reorder</span>
                 </Button>
               ) : null}
-              <Button size="sm" onClick={() => setCreateOpen(true)}>
+              <Button size="sm" onClick={() => setCreateOpen(true)} className="w-full sm:w-auto">
                 <Plus className="h-4 w-4" />
                 Add Banner
               </Button>
@@ -498,7 +500,7 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
 
         <CardContent className="p-0">
           {loading && banners.length === 0 ? (
-            <div className="px-6 py-8">
+            <div className="px-3 py-6 sm:px-6 sm:py-8">
               <ListRowsSkeleton />
             </div>
           ) : banners.length === 0 ? (
@@ -532,82 +534,93 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
                   ref={(element) => setRowRef(banner.id, element)}
                   style={getBannerDragStyle(banner.id, index, activeDrag)}
                   className={cn(
-                    "relative flex flex-col gap-4 bg-card px-4 py-4 will-change-transform sm:flex-row sm:items-center sm:px-6",
+                    "relative bg-card px-3 py-3 will-change-transform sm:px-6 sm:py-4",
                     dragDropEnabled && draggingBannerId === null && reorderingId === null && "hover:bg-muted/20",
                     activeDrag?.id === banner.id &&
                       "rounded-xl bg-card ring-1 ring-primary/20"
                   )}
                 >
-                  {dragDropEnabled ? (
-                    <button
-                      type="button"
-                      onPointerDown={(event) => handleGripPointerDown(event, banner.id, index)}
-                      disabled={reorderingId !== null || draggingBannerId !== null}
-                      className={cn(
-                        "flex h-10 w-8 shrink-0 touch-none items-center justify-center rounded-lg border border-dashed border-border text-muted-foreground transition-colors",
-                        "hover:border-primary/40 hover:bg-primary/5 hover:text-primary",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-                        draggingBannerId === banner.id && "cursor-grabbing border-primary/50 bg-primary/10 text-primary"
-                      )}
-                      aria-label={`Drag ${banner.title} to reorder`}
-                    >
-                      <GripVertical className="h-4 w-4" />
-                    </button>
-                  ) : null}
-
-                  <BannerImage image={banner.image} title={banner.title} />
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold">{banner.title}</p>
-                      <Badge variant="outline">Position {index + 1}</Badge>
-                    </div>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {banner.redirect_type && banner.redirect_id
-                        ? `Redirects to ${banner.redirect_type} #${banner.redirect_id}`
-                        : "No redirect configured"}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {!dragDropEnabled ? (
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          disabled={index === 0 || reorderingId !== null}
-                          onClick={() => void moveBanner(banner.id, "up")}
-                          aria-label={`Move ${banner.title} up`}
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                    <div className="flex min-w-0 flex-1 items-start gap-3">
+                      {dragDropEnabled ? (
+                        <button
+                          type="button"
+                          onPointerDown={(event) => handleGripPointerDown(event, banner.id, index)}
+                          disabled={reorderingId !== null || draggingBannerId !== null}
+                          className={cn(
+                            "mt-0.5 flex h-11 w-11 shrink-0 touch-none items-center justify-center rounded-lg border border-dashed border-border text-muted-foreground transition-colors sm:h-10 sm:w-8",
+                            "hover:border-primary/40 hover:bg-primary/5 hover:text-primary",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                            draggingBannerId === banner.id &&
+                              "cursor-grabbing border-primary/50 bg-primary/10 text-primary"
+                          )}
+                          aria-label={`Drag ${banner.title} to reorder`}
                         >
-                          <ChevronUp className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          disabled={index === banners.length - 1 || reorderingId !== null}
-                          onClick={() => void moveBanner(banner.id, "down")}
-                          aria-label={`Move ${banner.title} down`}
-                        >
-                          <ChevronDown className="h-4 w-4" />
-                        </Button>
+                          <GripVertical className="h-4 w-4" />
+                        </button>
+                      ) : null}
+
+                      <BannerImage image={banner.image} title={banner.title} />
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-semibold leading-snug">{banner.title}</p>
+                          <Badge variant="outline" className="shrink-0">
+                            Position {index + 1}
+                          </Badge>
+                        </div>
+                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                          {banner.redirect_type && banner.redirect_id
+                            ? `Redirects to ${banner.redirect_type} #${banner.redirect_id}`
+                            : "No redirect configured"}
+                        </p>
                       </div>
-                    ) : null}
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => void openEdit(banner)}
-                      aria-label={`Edit ${banner.title}`}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setDeleteBanner(banner)}
-                      aria-label={`Delete ${banner.title}`}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    </div>
+
+                    <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border/70 pt-3 sm:border-0 sm:pt-0">
+                      {!dragDropEnabled ? (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-10 w-10 sm:h-10 sm:w-10"
+                            disabled={index === 0 || reorderingId !== null}
+                            onClick={() => void moveBanner(banner.id, "up")}
+                            aria-label={`Move ${banner.title} up`}
+                          >
+                            <ChevronUp className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-10 w-10 sm:h-10 sm:w-10"
+                            disabled={index === banners.length - 1 || reorderingId !== null}
+                            onClick={() => void moveBanner(banner.id, "down")}
+                            aria-label={`Move ${banner.title} down`}
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : null}
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-10 w-10"
+                        onClick={() => void openEdit(banner)}
+                        aria-label={`Edit ${banner.title}`}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-10 w-10"
+                        onClick={() => setDeleteBanner(banner)}
+                        aria-label={`Delete ${banner.title}`}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -622,7 +635,7 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
         title="Add Banner"
         description="Create a new promotional banner with image and redirect target."
         icon={<Megaphone className="h-5 w-5" />}
-        className="max-w-xl"
+        className="w-full max-w-xl"
       >
         <BannerForm
           key={createOpen ? "create-banner-open" : "create-banner-closed"}
@@ -639,7 +652,7 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
         title="Edit Banner"
         description="Update banner image and redirect target."
         icon={<Pencil className="h-5 w-5" />}
-        className="max-w-xl"
+        className="w-full max-w-xl"
       >
         {editBanner &&
           (editLoading ? (

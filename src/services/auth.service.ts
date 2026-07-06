@@ -14,49 +14,77 @@ const REFRESH_URL = `${API_BASE_URL}${API_ENDPOINTS.auth.refresh}`;
 const LOGOUT_URL = `${API_BASE_URL}${API_ENDPOINTS.auth.logout}`;
 const PROFILE_URL = `${API_BASE_URL}${API_ENDPOINTS.auth.profile}`;
 
+export class AuthServiceError extends Error {
+  constructor(
+    message: string,
+    public readonly status?: number
+  ) {
+    super(message);
+    this.name = "AuthServiceError";
+  }
+}
+
 async function publicApiPost<T>(url: string, body: unknown): Promise<ApiResponse<T>> {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    cache: "no-store",
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+  } catch {
+    throw new AuthServiceError("Unable to reach the server. Please try again.");
+  }
 
   let json: ApiResponse<T>;
 
   try {
     json = (await response.json()) as ApiResponse<T>;
   } catch {
-    throw new Error("Unable to reach the server. Please try again.");
+    throw new AuthServiceError("Unable to reach the server. Please try again.");
   }
 
   if (!response.ok || !json.success) {
-    throw new Error(json.message || "Invalid email or password. Please try again.");
+    throw new AuthServiceError(
+      json.message || "Invalid email or password. Please try again.",
+      response.status
+    );
   }
 
   return json;
 }
 
 async function authenticatedApiGet<T>(url: string, token: string): Promise<ApiResponse<T>> {
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-      ...buildAuthorizationHeader(token),
-    },
-    cache: "no-store",
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        ...buildAuthorizationHeader(token),
+      },
+      cache: "no-store",
+    });
+  } catch {
+    throw new AuthServiceError("Unable to verify your account. Please try again.");
+  }
 
   let json: ApiResponse<T>;
 
   try {
     json = (await response.json()) as ApiResponse<T>;
   } catch {
-    throw new Error("Unable to verify your account. Please try again.");
+    throw new AuthServiceError("Unable to verify your account. Please try again.", response.status);
   }
 
   if (!response.ok || !json.success) {
-    throw new Error(json.message || "Unable to verify your account. Please try again.");
+    throw new AuthServiceError(
+      json.message || "Unable to verify your account. Please try again.",
+      response.status
+    );
   }
 
   return json;

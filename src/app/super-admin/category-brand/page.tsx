@@ -3,13 +3,13 @@ import { CategoryManagement } from "@/components/categories/category-management"
 import { ROUTES } from "@/config/routes";
 
 export const metadata: Metadata = {
-  title: "Category & Brand",
+  title: "Categories",
 };
 
 export default function SuperAdminCategoryPage() {
   return (
     <CategoryManagement
-      title="Category & Brand"
+      title="Categories"
       basePath={ROUTES.superAdmin.base}
     />
   );

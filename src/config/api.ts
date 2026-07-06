@@ -38,6 +38,14 @@ export const API_ENDPOINTS = {
     list: "/banners",
     detail: (id: number | string) => `/banners/${id}`,
   },
+  brands: {
+    list: "/brands",
+    detail: (id: number | string) => `/brands/${id}`,
+  },
+  offers: {
+    list: "/offers",
+    detail: (id: number | string) => `/offers/${id}`,
+  },
   users: {
     list: "/users",
     detail: (id: string) => `/users/${id}`,

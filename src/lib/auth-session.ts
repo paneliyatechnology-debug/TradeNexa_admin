@@ -114,8 +114,6 @@ export async function tryRefreshAccessToken(
     const refreshToken = stored?.refreshToken;
 
     if (!stored || !refreshToken) {
-      clearAuth();
-      emitAuthChange();
       return null;
     }
 
@@ -129,9 +127,17 @@ export async function tryRefreshAccessToken(
       const tokens = await refreshFn(refreshToken);
       updateAuthTokens(tokens.token, tokens.refreshToken);
       return tokens.token;
-    } catch {
-      clearAuth();
-      emitAuthChange();
+    } catch (error) {
+      const status =
+        error && typeof error === "object" && "status" in error
+          ? (error as { status?: number }).status
+          : undefined;
+
+      if (status === 401 || status === 403) {
+        clearAuth();
+        emitAuthChange();
+      }
+
       return null;
     } finally {
       refreshPromise = null;
@@ -174,5 +180,10 @@ export async function ensureValidAccessToken(
   }
 
   const newToken = await tryRefreshAccessToken(refreshFn);
-  return Boolean(newToken);
+  if (newToken) {
+    return true;
+  }
+
+  const latest = getStoredAuth();
+  return Boolean(latest?.token && !isJwtExpired(latest.token));
 }

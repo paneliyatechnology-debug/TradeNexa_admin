@@ -87,3 +87,57 @@ export function getBannerFormSchema(options?: {
 export type BannerFormData = z.infer<typeof bannerFormBaseSchema>;
 export const BANNER_REDIRECT_TYPES = bannerRedirectTypes;
 
+const brandFormBaseSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name is required")
+    .max(120, "Name must be 120 characters or less"),
+  logo: z.instanceof(File).nullable().optional(),
+  clear_logo: z.boolean(),
+  is_popular: z.boolean(),
+});
+
+export function getBrandFormSchema(options?: {
+  isEdit?: boolean;
+  existingLogoUrl?: string | null;
+}) {
+  return brandFormBaseSchema.superRefine((data, ctx) => {
+    const hasNewLogo = data.logo instanceof File;
+    const hasExistingLogo = Boolean(
+      options?.isEdit && options.existingLogoUrl && !data.clear_logo
+    );
+
+    if (!hasNewLogo && !hasExistingLogo) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Logo is required",
+        path: ["logo"],
+      });
+    }
+  });
+}
+
+export type BrandFormData = z.infer<typeof brandFormBaseSchema>;
+
+const offerFormBaseSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(1, "Title is required")
+    .max(120, "Title must be 120 characters or less"),
+  discount: z
+    .number({ error: "Discount is required" })
+    .min(1, "Discount must be at least 1%")
+    .max(100, "Discount cannot exceed 100%"),
+  expiry_date: z.string().min(1, "Expiry date is required"),
+  banner: z.instanceof(File).nullable().optional(),
+  clear_banner: z.boolean(),
+});
+
+export function getOfferFormSchema() {
+  return offerFormBaseSchema;
+}
+
+export type OfferFormData = z.infer<typeof offerFormBaseSchema>;
+

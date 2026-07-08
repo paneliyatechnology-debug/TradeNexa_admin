@@ -13,6 +13,11 @@ export interface StoredAuth {
 
 let cachedRaw: string | null | undefined;
 let cachedSnapshot: StoredAuth | null = null;
+
+/**
+ * Single in-flight refresh promise. Concurrent 401 responses await this same promise
+ * so the refresh-token API is called only once; all callers retry after it settles.
+ */
 let refreshPromise: Promise<string | null> | null = null;
 
 function readRawAuth(): string | null {
@@ -125,7 +130,8 @@ export async function tryRefreshAccessToken(
 
     try {
       const tokens = await refreshFn(refreshToken);
-      updateAuthTokens(tokens.token, tokens.refreshToken);
+      // Persist new access token; keep existing refresh token if backend omits a new one.
+      updateAuthTokens(tokens.token, tokens.refreshToken ?? refreshToken);
       return tokens.token;
     } catch (error) {
       const status =

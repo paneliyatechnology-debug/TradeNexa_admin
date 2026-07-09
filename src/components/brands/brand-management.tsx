@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { toast } from "sonner";
 import { BrandForm } from "@/components/brands/brand-form";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -27,20 +26,29 @@ import {
   Pencil,
   Plus,
   Search,
-  Star,
   Trash2,
 } from "lucide-react";
 import { cn } from "@/utils/cn";
-import { nextColumnSortState } from "@/utils/column-sort";
+import { getColumnDefaultOrder, nextColumnSortState } from "@/utils/column-sort";
 
-const NAME_DEFAULT_SORT_ORDER: SortOrder = "asc";
+const SORTABLE_COLUMNS: {
+  column: BrandSortBy;
+  defaultOrder: SortOrder;
+}[] = [
+  { column: "name", defaultOrder: "asc" },
+  { column: "country", defaultOrder: "asc" },
+];
+
+function getDefaultSortOrder(column: BrandSortBy): SortOrder {
+  return getColumnDefaultOrder(column, SORTABLE_COLUMNS);
+}
 
 interface BrandManagementProps {
   title: string;
   basePath: string;
 }
 
-type PopularFilter = "all" | "popular" | "not_popular";
+type BoolFilter = "all" | "yes" | "no";
 
 const defaultPagination = {
   total: 0,
@@ -49,22 +57,9 @@ const defaultPagination = {
   totalPages: 0,
 };
 
-function toPopularParam(filter: PopularFilter): boolean | undefined {
+function toBoolParam(filter: BoolFilter): boolean | undefined {
   if (filter === "all") return undefined;
-  return filter === "popular";
-}
-
-function formatCreatedLabel(value?: string): string | null {
-  if (!value) return null;
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return filter === "yes";
 }
 
 function SortableColumnHeader({
@@ -120,10 +115,15 @@ function BrandTableHeader({
   sortOrder: SortOrder;
   onSort: (column: BrandSortBy) => void;
 }) {
+  const centerHeaderClass =
+    "px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:px-4";
+
   return (
     <thead>
-      <tr className="border-b border-border bg-muted/40">
-        <th className="px-4 py-3 text-left font-medium sm:px-6">Logo</th>
+      <tr className="border-b border-border bg-muted/30">
+        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:px-6">
+          Logo
+        </th>
         <SortableColumnHeader
           label="Name"
           column="name"
@@ -131,9 +131,22 @@ function BrandTableHeader({
           sortOrder={sortOrder}
           onSort={onSort}
         />
-        <th className="px-4 py-3 text-left font-medium sm:px-6">Created</th>
-        <th className="px-4 py-3 text-left font-medium sm:px-6">Popular</th>
-        <th className="px-4 py-3 text-left font-medium sm:px-6">Actions</th>
+        <SortableColumnHeader
+          label="Country"
+          column="country"
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSort={onSort}
+        />
+        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:px-6">
+          Website
+        </th>
+        <th className={centerHeaderClass}>Active</th>
+        <th className={centerHeaderClass}>Popular</th>
+        <th className={centerHeaderClass}>Featured</th>
+        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:px-6">
+          Actions
+        </th>
       </tr>
     </thead>
   );
@@ -161,47 +174,49 @@ function TableLoadingOverlay({
 function BrandLogo({
   logo,
   name,
+  size = "md",
 }: {
   logo: string | null;
   name: string;
+  size?: "md" | "lg";
 }) {
   const src = resolveMediaDisplayUrl(logo);
+  const isLarge = size === "lg";
+  const frameClass = cn(
+    "flex shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-gradient-to-br from-background to-muted/40",
+    isLarge ? "h-14 w-14 ring-2 ring-primary/5" : "h-11 w-11"
+  );
 
   if (!src) {
     return (
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-dashed border-border bg-muted/30 text-muted-foreground">
-        <ImageIcon className="h-4 w-4" />
+      <div className={cn(frameClass, "border-dashed border-border text-muted-foreground")}>
+        <ImageIcon className={cn(isLarge ? "h-5 w-5" : "h-4 w-4")} />
       </div>
     );
   }
 
   return (
-    <img
-      src={src}
-      alt={name}
-      className="h-12 w-12 shrink-0 rounded-lg border border-border bg-background object-contain p-1"
-      referrerPolicy="no-referrer"
-    />
+    <div className={cn(frameClass, "border-border")}>
+      <img
+        src={src}
+        alt={name}
+        className="h-full w-full object-contain p-1.5"
+        referrerPolicy="no-referrer"
+      />
+    </div>
   );
 }
 
-function BrandStatusBadge({ isPopular }: { isPopular: boolean }) {
-  if (isPopular) {
-    return (
-      <Badge className="gap-1 border-0 bg-amber-500/12 px-2 py-0.5 text-[11px] font-medium text-amber-800 hover:bg-amber-500/12">
-        <Star className="h-3 w-3 fill-current" />
-        Popular
-      </Badge>
-    );
-  }
-
+function YesNoValue({ value }: { value: boolean }) {
   return (
-    <Badge
-      variant="outline"
-      className="border-border/80 bg-muted/30 px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+    <span
+      className={cn(
+        "text-sm font-medium",
+        value ? "text-foreground" : "text-muted-foreground"
+      )}
     >
-      Standard
-    </Badge>
+      {value ? "Yes" : "No"}
+    </span>
   );
 }
 
@@ -214,41 +229,64 @@ function BrandTableRow({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const createdLabel = formatCreatedLabel(brand.created_at);
+  const country = brand.country?.trim();
+  const website = brand.website?.trim();
 
   return (
-    <tr className="transition-colors hover:bg-muted/30">
-      <td className="px-4 py-3 sm:px-6">
+    <tr className="group transition-colors hover:bg-muted/25">
+      <td className="px-4 py-3.5 sm:px-6">
         <BrandLogo logo={brand.logo} name={brand.name} />
       </td>
-      <td className="px-4 py-3 sm:px-6">
-        <p className="max-w-[14rem] font-medium leading-snug sm:max-w-xs">{brand.name}</p>
+      <td className="px-4 py-3.5 sm:px-6">
+        <p className="max-w-[12rem] truncate font-semibold leading-snug sm:max-w-xs">
+          {brand.name}
+        </p>
       </td>
-      <td className="px-4 py-3 text-muted-foreground sm:px-6">
-        {createdLabel ?? "—"}
+      <td className="px-4 py-3.5 text-muted-foreground sm:px-6">
+        <p className="max-w-[10rem] truncate sm:max-w-xs">{country || "—"}</p>
       </td>
-      <td className="px-4 py-3 sm:px-6">
-        <BrandStatusBadge isPopular={brand.is_popular} />
+      <td className="px-4 py-3.5 sm:px-6">
+        {website ? (
+          <a
+            href={website}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block max-w-[12rem] truncate text-sm text-primary hover:underline sm:max-w-xs"
+          >
+            {website.replace(/^https?:\/\//, "")}
+          </a>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
       </td>
-      <td className="px-4 py-3 sm:px-6">
-        <div className="flex items-center gap-2">
+      <td className="px-3 py-3.5 text-center sm:px-4">
+        <YesNoValue value={brand.is_active} />
+      </td>
+      <td className="px-3 py-3.5 text-center sm:px-4">
+        <YesNoValue value={brand.is_popular} />
+      </td>
+      <td className="px-3 py-3.5 text-center sm:px-4">
+        <YesNoValue value={brand.is_featured} />
+      </td>
+      <td className="px-4 py-3.5 sm:px-6">
+        <div className="flex items-center justify-end gap-1 opacity-90 transition-opacity group-hover:opacity-100">
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
-            className="h-9 w-9"
+            className="h-9 w-9 text-muted-foreground hover:text-foreground"
             onClick={onEdit}
             aria-label={`Edit ${brand.name}`}
           >
             <Pencil className="h-4 w-4" />
           </Button>
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
-            className="h-9 w-9"
+            className="h-9 w-9 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
             onClick={onDelete}
             aria-label={`Delete ${brand.name}`}
           >
-            <Trash2 className="h-4 w-4 text-destructive" />
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </td>
@@ -261,20 +299,29 @@ function TableRowsSkeleton({ rows = 5 }: { rows?: number }) {
     <>
       {Array.from({ length: rows }).map((_, index) => (
         <tr key={index} className="border-b border-border">
-          <td className="px-4 py-3 sm:px-6">
-            <Skeleton className="h-12 w-12 rounded-lg" />
+          <td className="px-4 py-3.5 sm:px-6">
+            <Skeleton className="h-11 w-11 rounded-xl" />
           </td>
-          <td className="px-4 py-3 sm:px-6">
+          <td className="px-4 py-3.5 sm:px-6">
             <Skeleton className="h-4 w-32" />
           </td>
-          <td className="px-4 py-3 sm:px-6">
-            <Skeleton className="h-4 w-24" />
+          <td className="px-4 py-3.5 sm:px-6">
+            <Skeleton className="h-4 w-20" />
           </td>
-          <td className="px-4 py-3 sm:px-6">
-            <Skeleton className="h-5 w-16 rounded-full" />
+          <td className="px-4 py-3.5 sm:px-6">
+            <Skeleton className="h-4 w-28" />
           </td>
-          <td className="px-4 py-3 sm:px-6">
-            <div className="flex gap-2">
+          <td className="px-3 py-3.5 text-center sm:px-4">
+            <Skeleton className="mx-auto h-4 w-8" />
+          </td>
+          <td className="px-3 py-3.5 text-center sm:px-4">
+            <Skeleton className="mx-auto h-4 w-8" />
+          </td>
+          <td className="px-3 py-3.5 text-center sm:px-4">
+            <Skeleton className="mx-auto h-4 w-8" />
+          </td>
+          <td className="px-4 py-3.5 sm:px-6">
+            <div className="flex justify-end gap-1">
               <Skeleton className="h-9 w-9 rounded-md" />
               <Skeleton className="h-9 w-9 rounded-md" />
             </div>
@@ -282,6 +329,60 @@ function TableRowsSkeleton({ rows = 5 }: { rows?: number }) {
         </tr>
       ))}
     </>
+  );
+}
+
+function BoolFilter({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: BoolFilter;
+  onChange: (value: BoolFilter) => void;
+}) {
+  const options: { value: BoolFilter; label: string }[] = [
+    { value: "all", label: "All" },
+    { value: "yes", label: "Yes" },
+    { value: "no", label: "No" },
+  ];
+
+  const isFiltered = value !== "all";
+
+  return (
+    <div
+      className={cn(
+        "rounded-xl border p-3 transition-colors",
+        isFiltered
+          ? "border-primary/30 bg-primary/5"
+          : "border-border bg-muted/20"
+      )}
+    >
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground">
+        {label}
+      </p>
+      <div className="grid grid-cols-3 gap-1 rounded-lg border border-border bg-background/60 p-1">
+        {options.map((option) => {
+          const isActive = value === option.value;
+
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onChange(option.value)}
+              className={cn(
+                "rounded-md px-2 py-1.5 text-xs font-medium transition-all sm:text-sm",
+                isActive
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+              )}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -294,7 +395,9 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
   const [hasLoaded, setHasLoaded] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const [popularFilter, setPopularFilter] = useState<PopularFilter>("all");
+  const [activeFilter, setActiveFilter] = useState<BoolFilter>("all");
+  const [popularFilter, setPopularFilter] = useState<BoolFilter>("all");
+  const [featuredFilter, setFeaturedFilter] = useState<BoolFilter>("all");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<BrandSortBy | null>(null);
@@ -313,7 +416,9 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
       const data = await brandsService.getBrands({
         page,
         limit,
-        is_popular: toPopularParam(popularFilter),
+        is_active: toBoolParam(activeFilter),
+        is_popular: toBoolParam(popularFilter),
+        is_featured: toBoolParam(featuredFilter),
         search: search || undefined,
         sort_by: sortBy ?? undefined,
         sort_order: sortBy ? sortOrder : undefined,
@@ -325,7 +430,7 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, popularFilter, search, sortBy, sortOrder]);
+  }, [page, limit, activeFilter, popularFilter, featuredFilter, search, sortBy, sortOrder]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -350,7 +455,7 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
       column,
       sortBy,
       sortOrder,
-      defaultOrder: NAME_DEFAULT_SORT_ORDER,
+      defaultOrder: getDefaultSortOrder(column),
     });
     setSortBy(next.sortBy);
     setSortOrder(next.sortOrder);
@@ -364,7 +469,12 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
     return {
       name: data.name.trim(),
       logo: data.logo,
+      description: data.description.trim(),
+      country: data.country.trim(),
+      website: data.website.trim(),
       is_popular: data.is_popular,
+      is_active: data.is_active,
+      is_featured: data.is_featured,
     };
   };
 
@@ -377,7 +487,12 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
       name: data.name.trim(),
       logo: data.logo ?? null,
       clear_logo: data.clear_logo,
+      description: data.description.trim(),
+      country: data.country.trim(),
+      website: data.website.trim(),
       is_popular: data.is_popular,
+      is_active: data.is_active,
+      is_featured: data.is_featured,
     };
   };
 
@@ -444,11 +559,19 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
     return <DashboardSkeleton />;
   }
 
-  const filterButtons: { value: PopularFilter; label: string; shortLabel: string }[] = [
-    { value: "all", label: "All", shortLabel: "All" },
-    { value: "popular", label: "Popular", shortLabel: "Popular" },
-    { value: "not_popular", label: "Not Popular", shortLabel: "Other" },
-  ];
+  const handleBoolFilterChange = (
+    setter: (value: BoolFilter) => void,
+    value: BoolFilter
+  ) => {
+    setter(value);
+    setPage(1);
+  };
+
+  const hasActiveFilters =
+    Boolean(search) ||
+    activeFilter !== "all" ||
+    popularFilter !== "all" ||
+    featuredFilter !== "all";
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -462,8 +585,8 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
       </div>
       <div>
         <h1 className="text-xl font-bold tracking-tight sm:mt-2 md:text-2xl">{title}</h1>
-        <p className="mt-1 hidden text-sm text-muted-foreground sm:block md:text-base">
-          Manage marketplace brands, logos, and popular brand visibility.
+        <p className="mt-1 text-sm text-muted-foreground md:text-base">
+          Manage marketplace brands, logos, visibility, and featured listings.
         </p>
       </div>
 
@@ -484,8 +607,8 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
             </Button>
           </div>
 
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="relative w-full lg:max-w-md">
+          <div className="flex flex-col gap-3">
+            <div className="relative w-full sm:max-w-md">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="search"
@@ -496,42 +619,22 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
               />
             </div>
 
-            <div className="flex gap-2 overflow-x-auto pb-0.5 sm:hidden">
-              {filterButtons.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => {
-                    setPopularFilter(option.value);
-                    setPage(1);
-                  }}
-                  className={cn(
-                    "min-w-[4.5rem] flex-1 rounded-xl px-3 py-2 text-center text-xs font-medium transition-all",
-                    popularFilter === option.value
-                      ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
-                      : "bg-muted/50 text-muted-foreground"
-                  )}
-                >
-                  {option.shortLabel}
-                </button>
-              ))}
-            </div>
-
-            <div className="hidden gap-2 sm:flex sm:flex-wrap">
-              {filterButtons.map((option) => (
-                <Button
-                  key={option.value}
-                  type="button"
-                  size="sm"
-                  variant={popularFilter === option.value ? "primary" : "outline"}
-                  onClick={() => {
-                    setPopularFilter(option.value);
-                    setPage(1);
-                  }}
-                >
-                  {option.label}
-                </Button>
-              ))}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <BoolFilter
+                label="Active"
+                value={activeFilter}
+                onChange={(value) => handleBoolFilterChange(setActiveFilter, value)}
+              />
+              <BoolFilter
+                label="Popular"
+                value={popularFilter}
+                onChange={(value) => handleBoolFilterChange(setPopularFilter, value)}
+              />
+              <BoolFilter
+                label="Featured"
+                value={featuredFilter}
+                onChange={(value) => handleBoolFilterChange(setFeaturedFilter, value)}
+              />
             </div>
           </div>
         </CardHeader>
@@ -539,7 +642,7 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
         <CardContent className="p-0">
           {loading && brands.results.length === 0 ? (
             <div className="overflow-x-auto px-4 py-4 sm:px-0">
-              <table className="w-full min-w-[48rem] text-sm">
+              <table className="w-full min-w-[56rem] text-sm">
                 <BrandTableHeader
                   sortBy={sortBy}
                   sortOrder={sortOrder}
@@ -553,14 +656,14 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
           ) : brands.results.length === 0 ? (
             <EmptyState
               icon={<Award className="h-8 w-8 text-muted-foreground" />}
-              title={search || popularFilter !== "all" ? "No brands found" : "No brands yet"}
+              title={hasActiveFilters ? "No brands found" : "No brands yet"}
               description={
-                search || popularFilter !== "all"
+                hasActiveFilters
                   ? "Try adjusting your search or filters."
                   : "Create your first brand for the marketplace."
               }
               action={
-                !search && popularFilter === "all" ? (
+                !hasActiveFilters ? (
                   <Button onClick={() => setCreateOpen(true)}>
                     <Plus className="h-4 w-4" />
                     Add Brand
@@ -572,7 +675,7 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
             <>
               <TableLoadingOverlay loading={loading}>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[48rem] text-sm">
+                  <table className="w-full min-w-[56rem] text-sm">
                     <BrandTableHeader
                   sortBy={sortBy}
                   sortOrder={sortOrder}
@@ -608,9 +711,9 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         title="Add Brand"
-        description="Create a new brand with logo and popularity settings."
+        description="Create a new brand with logo, details, and visibility settings."
         icon={<Award className="h-5 w-5" />}
-        className="w-full max-w-xl"
+        className="w-full max-w-2xl"
       >
         <BrandForm
           key={createOpen ? "create-brand-open" : "create-brand-closed"}
@@ -625,9 +728,9 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
         open={!!editBrand}
         onClose={() => !editLoading && setEditBrand(null)}
         title="Edit Brand"
-        description="Update brand name, logo, and popularity."
+        description="Update brand details, logo, and visibility settings."
         icon={<Pencil className="h-5 w-5" />}
-        className="w-full max-w-xl"
+        className="w-full max-w-2xl"
       >
         {editBrand &&
           (editLoading ? (
@@ -642,7 +745,12 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
               submitLabel="Save Changes"
               initialValues={{
                 name: editBrand.name,
+                description: editBrand.description ?? "",
+                country: editBrand.country ?? "",
+                website: editBrand.website ?? "",
                 is_popular: editBrand.is_popular,
+                is_active: editBrand.is_active,
+                is_featured: editBrand.is_featured,
                 logoUrl: editBrand.logo,
               }}
               onSubmit={handleUpdate}
@@ -663,7 +771,7 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
           deleteBrand ? (
             <div className="mx-auto max-w-xs overflow-hidden rounded-2xl border border-border bg-muted/20 p-4 shadow-sm">
               <div className="flex items-center justify-center">
-                <BrandLogo logo={deleteBrand.logo} name={deleteBrand.name} />
+                <BrandLogo logo={deleteBrand.logo} name={deleteBrand.name} size="lg" />
               </div>
               <p className="mt-3 truncate text-center text-sm font-medium text-foreground">
                 {deleteBrand.name}

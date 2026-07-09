@@ -23,7 +23,12 @@ function buildBrandFormData(
 ): FormData {
   const formData = new FormData();
   formData.append("name", payload.name);
+  formData.append("description", payload.description?.trim() ?? "");
+  formData.append("country", payload.country?.trim() ?? "");
+  formData.append("website", payload.website?.trim() ?? "");
   formData.append("is_popular", String(payload.is_popular));
+  formData.append("is_active", String(payload.is_active));
+  formData.append("is_featured", String(payload.is_featured));
 
   if ("logo" in payload && payload.logo instanceof File) {
     formData.append("logo", payload.logo);
@@ -42,6 +47,9 @@ export const brandsService = {
       search: params.search || undefined,
       is_popular:
         params.is_popular === undefined ? undefined : params.is_popular,
+      is_active: params.is_active === undefined ? undefined : params.is_active,
+      is_featured:
+        params.is_featured === undefined ? undefined : params.is_featured,
       sort_by: params.sort_by,
       sort_order: params.sort_order,
     });

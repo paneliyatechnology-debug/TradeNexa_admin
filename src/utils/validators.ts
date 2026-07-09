@@ -95,7 +95,20 @@ const brandFormBaseSchema = z.object({
     .max(120, "Name must be 120 characters or less"),
   logo: z.instanceof(File).nullable().optional(),
   clear_logo: z.boolean(),
+  description: z
+    .string()
+    .trim()
+    .min(10, "Description must be at least 10 characters")
+    .max(2000, "Description must be 2000 characters or less"),
+  country: z
+    .string()
+    .trim()
+    .min(1, "Country is required")
+    .max(120, "Country must be 120 characters or less"),
+  website: z.string().trim().max(255, "Website must be 255 characters or less"),
   is_popular: z.boolean(),
+  is_active: z.boolean(),
+  is_featured: z.boolean(),
 });
 
 export function getBrandFormSchema(options?: {
@@ -114,6 +127,21 @@ export function getBrandFormSchema(options?: {
         message: "Logo is required",
         path: ["logo"],
       });
+    }
+
+    if (data.website) {
+      try {
+        const parsed = new URL(data.website);
+        if (!["http:", "https:"].includes(parsed.protocol)) {
+          throw new Error("Invalid protocol");
+        }
+      } catch {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Enter a valid website URL (e.g. https://www.example.com)",
+          path: ["website"],
+        });
+      }
     }
   });
 }

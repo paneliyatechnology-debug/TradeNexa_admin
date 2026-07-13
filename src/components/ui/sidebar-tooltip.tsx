@@ -59,14 +59,14 @@ export function SidebarTooltip({
             className={cn(
               "fixed z-[200] flex items-center gap-2 -translate-y-1/2",
               "px-2.5 py-1.5 rounded-md text-[12px] font-medium",
-              "bg-sidebar text-sidebar-foreground shadow-[var(--shadow-modal)] border border-sidebar-border",
+              "bg-[color:var(--ink)] text-[color:var(--ink-foreground)] shadow-[var(--shadow-modal)] border border-[color:var(--ink)]",
               "pointer-events-none whitespace-nowrap",
               "animate-in fade-in slide-in-from-left-1 duration-150"
             )}
           >
             <span>{label}</span>
             {badge && (
-              <span className="rounded-md bg-background/15 px-1.5 py-0.5 text-[10px] font-normal">
+              <span className="rounded-md bg-white/15 px-1.5 py-0.5 text-[10px] font-normal">
                 {badge}
               </span>
             )}

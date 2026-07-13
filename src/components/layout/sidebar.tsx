@@ -41,8 +41,8 @@ export function Sidebar() {
           <Link
             href={`${basePath}/dashboard`}
             className={cn(
-              "flex items-center min-w-0 rounded-md bg-card px-2 py-1.5",
-              isCollapsed ? "justify-center w-full px-1.5" : "px-2"
+              "flex items-center min-w-0 rounded-md px-1 py-1",
+              isCollapsed ? "justify-center w-full" : ""
             )}
             onClick={close}
           >
@@ -88,7 +88,7 @@ export function Sidebar() {
                   "relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors duration-150",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--sidebar)]",
                   active
-                    ? "bg-primary text-primary-foreground shadow-sm before:absolute before:left-0 before:top-1 before:bottom-1 before:w-[3px] before:rounded-r-sm before:bg-primary-foreground/80"
+                    ? "bg-primary text-primary-foreground before:absolute before:left-0 before:top-1 before:bottom-1 before:w-[3px] before:rounded-r-sm before:bg-primary-foreground/90"
                     : "text-[color:var(--sidebar-muted)] hover:bg-[color:var(--sidebar-hover)] hover:text-[color:var(--sidebar-foreground)]",
                   isCollapsed && "justify-center px-2 before:hidden"
                 )}
@@ -103,7 +103,7 @@ export function Sidebar() {
                       "ml-auto shrink-0 text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded-sm",
                       active
                         ? "bg-primary-foreground/20 text-primary-foreground"
-                        : "bg-[color:var(--sidebar-hover)] text-[color:var(--sidebar-muted)]"
+                        : "bg-secondary text-[color:var(--sidebar-muted)]"
                     )}
                   >
                     Soon
@@ -124,7 +124,7 @@ export function Sidebar() {
             }}
             className={cn(
               "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium",
-              "text-[color:var(--sidebar-muted)] hover:bg-destructive/15 hover:text-red-300 transition-colors duration-150",
+              "text-[color:var(--sidebar-muted)] hover:bg-destructive/10 hover:text-destructive transition-colors duration-150",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--sidebar)]",
               isCollapsed && "justify-center px-2"
             )}
@@ -165,7 +165,7 @@ export function Sidebar() {
     <>
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-[color:var(--sidebar)]/60 lg:hidden animate-in fade-in duration-200"
+          className="fixed inset-0 z-40 bg-[color:var(--ink)]/40 lg:hidden animate-in fade-in duration-200"
           onClick={close}
           aria-hidden
         />

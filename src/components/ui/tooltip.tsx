@@ -77,8 +77,8 @@ export function Tooltip({
               style={{ top: coords.top, left: coords.left }}
               className={cn(
                 "fixed z-[220] pointer-events-none whitespace-nowrap",
-                "rounded-md border border-sidebar-border bg-sidebar px-2 py-1",
-                "text-[11px] font-medium text-sidebar-foreground shadow-[var(--shadow-modal)]",
+                "rounded-md border border-[color:var(--ink)] bg-[color:var(--ink)] px-2 py-1",
+                "text-[11px] font-medium text-[color:var(--ink-foreground)] shadow-[var(--shadow-modal)]",
                 "animate-in fade-in duration-150",
                 side === "top" && "-translate-x-1/2 -translate-y-full",
                 side === "bottom" && "-translate-x-1/2",

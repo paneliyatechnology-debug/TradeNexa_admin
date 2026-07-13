@@ -23,13 +23,17 @@
   --accent: #e4f3ef;
   --accent-foreground: #0b1f2a;
 
-  /* Chrome */
-  --sidebar: #0b1f2a;
-  --sidebar-foreground: #d7dee5;
-  --sidebar-muted: #8a9aa6;
-  --sidebar-border: #1a3342;
-  --sidebar-hover: #143041;
+  /* Sidebar chrome — light mode */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0b1f2a;
+  --sidebar-muted: #5b6b76;
+  --sidebar-border: #d7dee5;
+  --sidebar-hover: #eef2f5;
   --sidebar-active: #0e7c6b;
+
+  /* Dark ink (login / tooltips on light UI) */
+  --ink: #0b1f2a;
+  --ink-foreground: #f4f6f8;
 
   /* Semantic */
   --success: #1b7f5a;
@@ -82,6 +86,8 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-hover: var(--sidebar-hover);
   --color-sidebar-active: var(--sidebar-active);
+  --color-ink: var(--ink);
+  --color-ink-foreground: var(--ink-foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --radius-sm: calc(var(--radius) - 2px);
@@ -261,8 +267,9 @@ body {
 }
 
 /* Login — ink chrome, no mesh flourishes */
+/* Login — ink chrome */
 .login-page-bg {
-  background: var(--sidebar);
+  background: var(--ink);
 }
 
 .login-page-bg::before {

@@ -169,3 +169,26 @@ export function getOfferFormSchema() {
 
 export type OfferFormData = z.infer<typeof offerFormBaseSchema>;
 
+const remarksField = z
+  .string()
+  .trim()
+  .max(2000, "Remarks must be 2000 characters or less");
+
+/** Approve: remarks optional; if provided, min 10 characters. */
+export const productApproveSchema = z.object({
+  remarks: remarksField.optional().refine(
+    (value) => !value || value.length >= 10,
+    "Remarks must be at least 10 characters when provided"
+  ),
+});
+
+/** Request revision / reject: remarks required (min 10). */
+export const productDecisionRemarksSchema = z.object({
+  remarks: remarksField.min(10, "Remarks must be at least 10 characters"),
+});
+
+export type ProductApproveFormData = z.infer<typeof productApproveSchema>;
+export type ProductDecisionRemarksFormData = z.infer<
+  typeof productDecisionRemarksSchema
+>;
+

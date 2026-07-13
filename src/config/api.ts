@@ -33,6 +33,13 @@ export const API_ENDPOINTS = {
   products: {
     list: "/products",
     detail: (id: number | string) => `/products/${id}`,
+    reviews: (id: number | string) => `/products/${id}/reviews`,
+    admin: {
+      reviews: "/products/admin/reviews",
+      approve: "/products/admin/approve",
+      requestRevision: "/products/admin/request-revision",
+      reject: "/products/admin/reject",
+    },
   },
   banners: {
     list: "/banners",

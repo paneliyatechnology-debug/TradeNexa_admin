@@ -21,11 +21,11 @@ export function Pagination({
   return (
     <div
       className={cn(
-        "flex flex-col items-stretch justify-between gap-3 pt-4 sm:flex-row sm:items-center",
+        "flex flex-col items-stretch justify-between gap-2.5 pt-3 sm:flex-row sm:items-center",
         className
       )}
     >
-      <p className="text-center text-sm text-muted-foreground sm:text-left">
+      <p className="text-center text-[13px] text-muted-foreground sm:text-left font-data">
         Showing {start}–{end} of {total}
       </p>
       <div className="flex items-center justify-center gap-2">
@@ -34,12 +34,12 @@ export function Pagination({
           size="sm"
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
-          className="min-w-10 flex-1 sm:min-w-0 sm:flex-none"
+          className="min-w-9 flex-1 sm:min-w-0 sm:flex-none"
         >
           <ChevronLeft className="h-4 w-4" />
           <span className="hidden sm:inline">Previous</span>
         </Button>
-        <span className="shrink-0 px-1 text-sm text-muted-foreground sm:px-2">
+        <span className="shrink-0 px-1 text-[13px] text-muted-foreground font-data sm:px-2">
           {page} / {totalPages || 1}
         </span>
         <Button
@@ -47,7 +47,7 @@ export function Pagination({
           size="sm"
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
-          className="min-w-10 flex-1 sm:min-w-0 sm:flex-none"
+          className="min-w-9 flex-1 sm:min-w-0 sm:flex-none"
         >
           <span className="hidden sm:inline">Next</span>
           <ChevronRight className="h-4 w-4" />

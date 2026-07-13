@@ -77,7 +77,7 @@ function CheckboxField({
   inputRef: Ref<HTMLInputElement>;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-border bg-muted/20 px-4 py-3.5 text-sm">
+    <label className="flex cursor-pointer items-center gap-2.5 rounded-md border border-border bg-muted/40 px-3 py-3 text-sm">
       <input
         type="checkbox"
         className="h-4 w-4 rounded border-border text-primary focus:ring-2 focus:ring-ring/50"
@@ -213,7 +213,7 @@ export function BrandForm({
             placeholder="Leading industrial brand with nationwide distribution..."
             aria-invalid={Boolean(errors.description)}
             className={cn(
-              "flex w-full rounded-xl border border-border bg-background/50 px-4 py-3 text-sm",
+              "flex w-full rounded-md border border-border bg-card px-3 py-2.5 text-sm",
               "placeholder:text-muted-foreground",
               "transition-all duration-200",
               "focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-primary/50",

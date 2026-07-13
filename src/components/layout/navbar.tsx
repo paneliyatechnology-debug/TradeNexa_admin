@@ -19,7 +19,7 @@ export function Navbar({ title }: NavbarProps) {
   const { role, isPreviewRole } = useAuth();
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-background/80 backdrop-blur-xl px-4 lg:px-6">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-card px-4 lg:px-6">
       <Button
         variant="ghost"
         size="icon"
@@ -31,7 +31,9 @@ export function Navbar({ title }: NavbarProps) {
       </Button>
 
       {title && (
-        <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
+        <h1 className="text-base font-semibold tracking-tight text-foreground">
+          {title}
+        </h1>
       )}
 
       <div className="flex items-center gap-2 ml-auto">
@@ -51,7 +53,7 @@ export function Navbar({ title }: NavbarProps) {
           aria-label="Notifications"
         >
           <Bell className="h-4 w-4" />
-          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
+          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary ring-2 ring-card" />
         </Button>
 
         <ProfileDropdown />

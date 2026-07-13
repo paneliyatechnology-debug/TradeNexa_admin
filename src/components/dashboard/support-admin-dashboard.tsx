@@ -20,11 +20,11 @@ export function SupportAdminDashboard() {
   } as const;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-5">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Support Dashboard</h1>
+        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Support Dashboard</h1>
         <p className="text-muted-foreground mt-1">
-          Manage customer support tickets and inquiries
+          Manage customer support tickets and inquiries.
         </p>
       </div>
 
@@ -34,7 +34,7 @@ export function SupportAdminDashboard() {
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 md:gap-5 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -46,7 +46,7 @@ export function SupportAdminDashboard() {
             {data.latestTickets.map((ticket) => (
               <div
                 key={ticket.id}
-                className="rounded-xl border border-border p-4 hover:bg-muted/50 transition-colors"
+                className="rounded-md border border-border p-4 hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -80,14 +80,14 @@ export function SupportAdminDashboard() {
               Support Activity
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             {data.supportActivity.map((activity) => (
               <div
                 key={activity.id}
-                className="flex items-start gap-3 rounded-xl p-3 hover:bg-muted/50 transition-colors"
+                className="flex items-start gap-3 rounded-md p-3 hover:bg-muted/50 transition-colors"
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10">
-                  <Headphones className="h-4 w-4 text-emerald-500" />
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-success/10">
+                  <Headphones className="h-4 w-4 text-success" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">{activity.action}</p>
@@ -114,7 +114,7 @@ export function SupportAdminDashboard() {
             {data.customerMessages.map((message) => (
               <div
                 key={message.id}
-                className="rounded-xl border border-border p-4 hover:bg-muted/50 transition-colors"
+                className="rounded-md border border-border p-4 hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium">{message.name}</p>

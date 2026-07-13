@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { IconButton } from "@/components/ui/icon-button";
 import { Modal } from "@/components/ui/modal";
 import { Pagination } from "@/components/ui/pagination";
 import { DashboardSkeleton, Skeleton } from "@/components/ui/skeleton";
@@ -898,7 +899,7 @@ function CategoryIcon({ icon, name }: { icon: string | null; name: string }) {
 
   if (!icon || failed || !src) {
     return (
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-accent text-primary">
         <FolderTree className="h-5 w-5" />
       </div>
     );
@@ -908,7 +909,7 @@ function CategoryIcon({ icon, name }: { icon: string | null; name: string }) {
     <img
       src={src}
       alt={`${name} icon`}
-      className="h-10 w-10 shrink-0 rounded-xl border border-border bg-background object-contain p-1.5"
+      className="h-10 w-10 shrink-0 rounded-md border border-border bg-card object-contain p-1.5"
       crossOrigin="anonymous"
       referrerPolicy="no-referrer"
       onError={() => {
@@ -935,7 +936,7 @@ function SubcategoryIcon({ icon, name }: { icon: string | null; name: string }) 
 
   if (!icon || failed || !src) {
     return (
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-info/10 text-info">
         <Layers className="h-5 w-5" />
       </div>
     );
@@ -945,7 +946,7 @@ function SubcategoryIcon({ icon, name }: { icon: string | null; name: string }) 
     <img
       src={src}
       alt={`${name} icon`}
-      className="h-10 w-10 shrink-0 rounded-xl border border-border bg-background object-contain p-1.5"
+      className="h-10 w-10 shrink-0 rounded-md border border-border bg-card object-contain p-1.5"
       crossOrigin="anonymous"
       referrerPolicy="no-referrer"
       onError={() => {
@@ -995,7 +996,7 @@ function TableLoadingOverlay({
 }
 
 const selectClassName = cn(
-  "h-10 rounded-xl border border-border bg-background/50 px-3 text-sm",
+  "h-9 rounded-md border border-border bg-card px-3 text-sm",
   "focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-primary/50"
 );
 
@@ -1036,7 +1037,7 @@ function SearchSortToolbar<T extends string = "name">({
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder={searchPlaceholder}
           className={cn(
-            "flex h-10 w-full rounded-xl border border-border bg-background/50 py-2 pl-10 pr-4 text-sm",
+            "flex h-9 w-full rounded-md border border-border bg-card py-2 pl-9 pr-3 text-sm",
             "placeholder:text-muted-foreground",
             "focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-primary/50"
           )}
@@ -1208,26 +1209,21 @@ function CategoriesView({
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
               </button>
-              <div className="flex shrink-0 items-center gap-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={`Edit ${category.name}`}
+              <div className="flex shrink-0 items-center gap-1.5">
+                <IconButton
+                  label="Edit category"
+                  tone="view"
                   onClick={() => onEdit(category)}
                 >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={`Delete ${category.name}`}
+                  <Pencil className="h-3.5 w-3.5" />
+                </IconButton>
+                <IconButton
+                  label="Delete category"
+                  tone="danger"
                   onClick={() => onDelete(category)}
-                  className="text-destructive hover:text-destructive"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </IconButton>
               </div>
             </div>
           ))}
@@ -1378,26 +1374,21 @@ function SubcategoriesView({
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
               </button>
-              <div className="flex shrink-0 items-center gap-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={`Edit ${sub.name}`}
+              <div className="flex shrink-0 items-center gap-1.5">
+                <IconButton
+                  label="Edit subcategory"
+                  tone="view"
                   onClick={() => onEdit(sub)}
                 >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={`Delete ${sub.name}`}
+                  <Pencil className="h-3.5 w-3.5" />
+                </IconButton>
+                <IconButton
+                  label="Delete subcategory"
+                  tone="danger"
                   onClick={() => onDelete(sub)}
-                  className="text-destructive hover:text-destructive"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </IconButton>
               </div>
             </div>
           ))}
@@ -1493,9 +1484,9 @@ function ProductsView({
         ) : (
           <TableLoadingOverlay loading={loading}>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="ledger-table w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border bg-muted/40">
+                  <tr className="border-b border-border">
                     <th className="text-left font-medium px-6 py-3">ID</th>
                     <th className="text-left font-medium px-6 py-3">Name</th>
                     <th className="text-left font-medium px-6 py-3 hidden lg:table-cell">
@@ -1515,7 +1506,7 @@ function ProductsView({
                 </thead>
                 <tbody className="divide-y divide-border">
                   {data.results.map((product) => (
-                    <tr key={product.id} className="hover:bg-muted/30 transition-colors">
+                    <tr key={product.id} className="group">
                       <td className="px-6 py-3 text-muted-foreground">#{product.id}</td>
                       <td className="px-6 py-3">
                         <p className="font-medium">{product.name}</p>

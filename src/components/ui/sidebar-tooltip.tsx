@@ -58,8 +58,8 @@ export function SidebarTooltip({
             style={{ top: position.top, left: position.left }}
             className={cn(
               "fixed z-[200] flex items-center gap-2 -translate-y-1/2",
-              "px-3 py-1.5 rounded-lg text-xs font-medium",
-              "bg-foreground text-background shadow-lg border border-white/10",
+              "px-2.5 py-1.5 rounded-md text-[12px] font-medium",
+              "bg-sidebar text-sidebar-foreground shadow-[var(--shadow-modal)] border border-sidebar-border",
               "pointer-events-none whitespace-nowrap",
               "animate-in fade-in slide-in-from-left-1 duration-150"
             )}

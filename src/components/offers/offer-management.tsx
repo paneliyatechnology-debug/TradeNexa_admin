@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { IconButton } from "@/components/ui/icon-button";
 import { Modal } from "@/components/ui/modal";
 import { Pagination } from "@/components/ui/pagination";
 import { DashboardSkeleton, Skeleton } from "@/components/ui/skeleton";
@@ -108,7 +109,7 @@ function OfferTableHeader({
 }) {
   return (
     <thead>
-      <tr className="border-b border-border bg-muted/40">
+      <tr className="border-b border-border">
         <th className="px-4 py-3 text-left font-medium sm:px-6">Banner</th>
         {SORTABLE_COLUMNS.map((item) => (
           <SortableColumnHeader
@@ -188,7 +189,7 @@ function OfferTableRow({
     : false;
 
   return (
-    <tr className="transition-colors hover:bg-muted/30">
+    <tr className="group">
       <td className="px-4 py-3 sm:px-6">
         <OfferBannerThumb banner={offer.banner} label={displayTitle} />
       </td>
@@ -225,24 +226,12 @@ function OfferTableRow({
       </td>
       <td className="px-4 py-3 sm:px-6">
         <div className="flex items-center gap-1.5">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-9 w-9 shrink-0"
-            onClick={onEdit}
-            aria-label={`Edit ${displayTitle}`}
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-9 w-9 shrink-0"
-            onClick={onDelete}
-            aria-label={`Delete ${displayTitle}`}
-          >
-            <Trash2 className="h-4 w-4 text-destructive" />
-          </Button>
+          <IconButton label="Edit offer" tone="view" onClick={onEdit}>
+            <Pencil className="h-3.5 w-3.5" />
+          </IconButton>
+          <IconButton label="Delete offer" tone="danger" onClick={onDelete}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </IconButton>
         </div>
       </td>
     </tr>
@@ -445,7 +434,7 @@ export function OfferManagement({ title, basePath }: OfferManagementProps) {
       <div>
         <h1 className="text-xl font-bold tracking-tight sm:mt-2 md:text-2xl">{title}</h1>
         <p className="mt-1 text-sm text-muted-foreground md:text-base">
-          Manage promotional offers displayed in the marketplace.
+          Create discount offers to boost sales and attract customers.
         </p>
       </div>
 
@@ -474,11 +463,11 @@ export function OfferManagement({ title, basePath }: OfferManagementProps) {
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
                 placeholder="Search offers..."
-                className="h-11 w-full rounded-xl border border-border bg-background/50 pl-10 pr-4 text-sm focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-ring/50"
+                className="h-9 w-full rounded-md border border-border bg-card pl-9 pr-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40"
               />
             </div>
 
-            <label className="flex h-11 w-full cursor-pointer items-center gap-2 rounded-xl border border-border bg-background/50 px-3 text-sm sm:w-auto">
+            <label className="flex h-9 w-full cursor-pointer items-center gap-2 rounded-md border border-border bg-card px-3 text-sm sm:w-auto">
               <input
                 type="checkbox"
                 checked={includeExpired}
@@ -496,7 +485,7 @@ export function OfferManagement({ title, basePath }: OfferManagementProps) {
         <CardContent className="p-0">
           {loading && offers.results.length === 0 ? (
             <div className="overflow-x-auto px-4 py-4 sm:px-0">
-              <table className="w-full min-w-[44rem] text-sm">
+              <table className="ledger-table w-full min-w-[44rem] text-sm">
                 <OfferTableHeader
                   sortBy={sortBy}
                   sortOrder={sortOrder}
@@ -529,7 +518,7 @@ export function OfferManagement({ title, basePath }: OfferManagementProps) {
             <>
               <TableLoadingOverlay loading={loading}>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[44rem] text-sm">
+                  <table className="ledger-table w-full min-w-[44rem] text-sm">
                     <OfferTableHeader
                       sortBy={sortBy}
                       sortOrder={sortOrder}
@@ -619,16 +608,16 @@ export function OfferManagement({ title, basePath }: OfferManagementProps) {
         icon={<Trash2 className="h-7 w-7" />}
         preview={
           deleteOffer ? (
-            <div className="mx-auto max-w-xs overflow-hidden rounded-2xl border border-border bg-muted/20 p-2 shadow-sm">
+            <div className="mx-auto max-w-xs overflow-hidden rounded-lg border border-border bg-muted/30 p-2">
               {resolveMediaDisplayUrl(deleteOffer.banner) ? (
                 <img
                   src={resolveMediaDisplayUrl(deleteOffer.banner)!}
                   alt={deleteTitle}
-                  className="h-28 w-full rounded-xl object-cover"
+                  className="h-28 w-full rounded-md object-cover"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="flex h-28 items-center justify-center rounded-xl bg-muted/40">
+                <div className="flex h-28 items-center justify-center rounded-md bg-muted">
                   <ImageIcon className="h-8 w-8 text-muted-foreground" />
                 </div>
               )}

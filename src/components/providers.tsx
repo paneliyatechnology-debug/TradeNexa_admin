@@ -12,7 +12,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         richColors
         closeButton
         toastOptions={{
-          className: "rounded-xl",
+          className: "rounded-md",
         }}
       />
     </AuthProvider>

@@ -60,7 +60,7 @@ export function ConfirmDialog({
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
       <div
-        className="absolute inset-0 bg-black/55 backdrop-blur-[3px] animate-in fade-in duration-200"
+        className="absolute inset-0 bg-sidebar/50 animate-in fade-in duration-200"
         onClick={loading ? undefined : onClose}
         aria-hidden
       />
@@ -69,62 +69,60 @@ export function ConfirmDialog({
         role="dialog"
         aria-modal
         className={cn(
-          "relative z-10 w-full max-w-md overflow-hidden rounded-3xl border border-border/80 bg-card shadow-2xl",
+          "relative z-10 w-full max-w-md overflow-hidden rounded-lg border border-border bg-card shadow-[var(--shadow-modal)]",
           "animate-in fade-in zoom-in-95 duration-200",
           className
         )}
         onClick={(event) => event.stopPropagation()}
       >
-        <div
-          className={cn(
-            "absolute inset-x-0 top-0 h-28 bg-gradient-to-b opacity-80",
-            isDestructive
-              ? "from-destructive/15 via-destructive/5 to-transparent"
-              : "from-amber-500/15 via-amber-500/5 to-transparent"
-          )}
-        />
-
         <button
           type="button"
           onClick={onClose}
           disabled={loading}
           aria-label="Close dialog"
-          className="absolute right-4 top-4 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-background/80 text-muted-foreground backdrop-blur-sm transition-colors hover:bg-background hover:text-foreground disabled:opacity-50"
+          className="absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <X className="h-4 w-4" />
         </button>
 
-        <div className="relative px-6 pb-6 pt-8 text-center sm:px-8">
+        <div className="relative px-5 pb-5 pt-7 text-center sm:px-6">
           <div
             className={cn(
-              "mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border shadow-sm",
+              "mx-auto flex h-12 w-12 items-center justify-center rounded-md border",
               isDestructive
                 ? "border-destructive/20 bg-destructive/10 text-destructive"
-                : "border-amber-500/20 bg-amber-500/10 text-amber-600"
+                : "border-warning/25 bg-warning/10 text-warning"
             )}
           >
             {icon ?? (
               <AlertTriangle
-                className={cn("h-7 w-7", isDestructive ? "text-destructive" : "text-amber-600")}
+                className={cn(
+                  "h-6 w-6",
+                  isDestructive ? "text-destructive" : "text-warning"
+                )}
               />
             )}
           </div>
 
-          <h2 className="mt-5 text-xl font-semibold tracking-tight text-foreground">{title}</h2>
+          <h2 className="mt-4 text-lg font-semibold tracking-tight text-foreground">
+            {title}
+          </h2>
 
-          {preview ? <div className="mt-5">{preview}</div> : null}
+          {preview ? <div className="mt-4">{preview}</div> : null}
 
           {description ? (
-            <div className="mt-4 text-sm leading-relaxed text-muted-foreground">{description}</div>
+            <div className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
+              {description}
+            </div>
           ) : null}
 
-          <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-center">
+          <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-center">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
               disabled={loading}
-              className="h-11 flex-1 rounded-xl sm:max-w-[9.5rem]"
+              className="h-9 flex-1 sm:max-w-[9.5rem]"
             >
               {cancelLabel}
             </Button>
@@ -133,7 +131,7 @@ export function ConfirmDialog({
               variant={isDestructive ? "danger" : "primary"}
               loading={loading}
               onClick={() => void onConfirm()}
-              className="h-11 flex-1 rounded-xl sm:max-w-[9.5rem]"
+              className="h-9 flex-1 sm:max-w-[9.5rem]"
             >
               {confirmLabel}
             </Button>

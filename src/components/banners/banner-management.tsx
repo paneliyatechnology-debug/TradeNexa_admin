@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { IconButton } from "@/components/ui/icon-button";
 import { Modal } from "@/components/ui/modal";
 import { Pagination } from "@/components/ui/pagination";
 import { DashboardSkeleton, Skeleton } from "@/components/ui/skeleton";
@@ -116,7 +117,7 @@ function BannerTableHeader({
 }) {
   return (
     <thead>
-      <tr className="border-b border-border bg-muted/40">
+      <tr className="border-b border-border">
         {showDragColumn ? (
           <th className="w-10 px-2 py-3 text-left font-medium sm:px-3" aria-label="Reorder" />
         ) : null}
@@ -256,7 +257,7 @@ function BannerTableRow({
       ref={rowRef}
       style={dragStyle}
       className={cn(
-        "transition-colors hover:bg-muted/30",
+        "group",
         dragDropEnabled && draggingBannerId === null && reorderingId === null && "will-change-transform",
         activeDrag?.id === banner.id && "bg-card ring-1 ring-inset ring-primary/20"
       )}
@@ -299,24 +300,12 @@ function BannerTableRow({
       </td>
       <td className="px-4 py-3 sm:px-6">
         <div className="flex items-center gap-1.5">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-9 w-9 shrink-0"
-            onClick={onEdit}
-            aria-label={`Edit ${banner.title}`}
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-9 w-9 shrink-0"
-            onClick={onDelete}
-            aria-label={`Delete ${banner.title}`}
-          >
-            <Trash2 className="h-4 w-4 text-destructive" />
-          </Button>
+          <IconButton label="Edit banner" tone="view" onClick={onEdit}>
+            <Pencil className="h-3.5 w-3.5" />
+          </IconButton>
+          <IconButton label="Delete banner" tone="danger" onClick={onDelete}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </IconButton>
         </div>
       </td>
     </tr>
@@ -867,7 +856,7 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
         />
         <h1 className="mt-2 text-xl font-bold tracking-tight md:text-2xl">{title}</h1>
         <p className="mt-1 text-sm text-muted-foreground md:text-base">
-          Manage homepage banners. Enable drag and drop to control display order.
+          Design homepage banners and arrange them to showcase featured content.
         </p>
       </div>
 
@@ -908,7 +897,7 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
               onChange={(event) => setSearchInput(event.target.value)}
               placeholder="Search banners..."
               disabled={isReorderView}
-              className="h-11 w-full rounded-xl border border-border bg-background/50 pl-10 pr-4 text-sm focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-9 w-full rounded-md border border-border bg-card pl-9 pr-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-60"
             />
           </div>
 
@@ -931,7 +920,7 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
         <CardContent className="p-0">
           {loading && displayList.length === 0 ? (
             <div className="overflow-x-auto px-4 py-4 sm:px-0">
-              <table className="w-full min-w-[52rem] text-sm">
+              <table className="ledger-table w-full min-w-[52rem] text-sm">
                 <BannerTableHeader
                   sortBy={sortBy}
                   sortOrder={sortOrder}
@@ -970,7 +959,7 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
                     draggingBannerId !== null && "select-none"
                   )}
                 >
-                  <table className="w-full min-w-[52rem] text-sm">
+                  <table className="ledger-table w-full min-w-[52rem] text-sm">
                     <BannerTableHeader
                       sortBy={sortBy}
                       sortOrder={sortOrder}
@@ -1072,16 +1061,16 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
         icon={<Trash2 className="h-7 w-7" />}
         preview={
           deleteBanner ? (
-            <div className="mx-auto max-w-xs overflow-hidden rounded-2xl border border-border bg-muted/20 p-2 shadow-sm">
+            <div className="mx-auto max-w-xs overflow-hidden rounded-lg border border-border bg-muted/30 p-2">
               {resolveMediaDisplayUrl(deleteBanner.image) ? (
                 <img
                   src={resolveMediaDisplayUrl(deleteBanner.image)!}
                   alt={deleteBanner.title}
-                  className="h-28 w-full rounded-xl object-cover"
+                  className="h-28 w-full rounded-md object-cover"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="flex h-28 items-center justify-center rounded-xl bg-muted/40">
+                <div className="flex h-28 items-center justify-center rounded-md bg-muted">
                   <ImageIcon className="h-8 w-8 text-muted-foreground" />
                 </div>
               )}

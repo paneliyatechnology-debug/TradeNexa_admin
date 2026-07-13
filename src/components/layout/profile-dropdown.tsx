@@ -31,14 +31,14 @@ export function ProfileDropdown() {
       <button
         onClick={() => setOpen((prev) => !prev)}
         className={cn(
-          "flex items-center gap-2 rounded-xl px-2 py-1.5 transition-colors",
-          "hover:bg-accent",
+          "flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors",
+          "hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           open && "bg-accent"
         )}
       >
         <Avatar name={user.name} size="sm" />
         <div className="hidden md:block text-left">
-          <p className="text-sm font-medium leading-none">{user.name}</p>
+          <p className="text-[13px] font-medium leading-none">{user.name}</p>
           <p className="text-xs text-muted-foreground mt-0.5">{user.email}</p>
         </div>
         <ChevronDown
@@ -50,12 +50,12 @@ export function ProfileDropdown() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl border border-border bg-card p-2 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200 z-50">
-          <div className="px-3 py-2 border-b border-border mb-2">
+        <div className="absolute right-0 top-full mt-2 w-64 rounded-lg border border-border bg-card p-1.5 shadow-[var(--shadow-modal)] animate-in fade-in slide-in-from-top-2 duration-200 z-50">
+          <div className="px-2.5 py-2 border-b border-border mb-1.5">
             <div className="flex items-center gap-3">
               <Avatar name={user.name} />
               <div>
-                <p className="text-sm font-semibold">{user.name}</p>
+                <p className="text-[13px] font-semibold">{user.name}</p>
                 <p className="text-xs text-muted-foreground">{user.email}</p>
               </div>
             </div>
@@ -66,14 +66,14 @@ export function ProfileDropdown() {
 
           <Button
             variant="ghost"
-            className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 mt-2"
+            className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
             onClick={() => {
               setOpen(false);
               logout();
             }}
           >
             <LogOut className="h-4 w-4" />
-            Logout
+            Log out
           </Button>
         </div>
       )}

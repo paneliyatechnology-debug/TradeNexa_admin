@@ -23,7 +23,7 @@ export function Breadcrumb({ items, className }: BreadcrumbProps) {
             {isClickable && item.href ? (
               <Link
                 href={item.href}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="text-[13px] text-muted-foreground hover:text-foreground transition-colors"
               >
                 {item.label}
               </Link>
@@ -31,14 +31,14 @@ export function Breadcrumb({ items, className }: BreadcrumbProps) {
               <button
                 type="button"
                 onClick={item.onClick}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="text-[13px] text-muted-foreground hover:text-foreground transition-colors"
               >
                 {item.label}
               </button>
             ) : (
               <span
                 className={cn(
-                  "text-sm",
+                  "text-[13px]",
                   isLast ? "font-medium text-foreground" : "text-muted-foreground"
                 )}
               >

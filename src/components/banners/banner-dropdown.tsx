@@ -89,7 +89,7 @@ export function BannerDropdown({
 
   return (
     <div ref={containerRef} className="relative space-y-2">
-      <label className="block text-sm font-medium text-foreground">{label}</label>
+      <label className="block text-[13px] font-medium text-foreground">{label}</label>
 
       <button
         ref={triggerRef}
@@ -97,10 +97,10 @@ export function BannerDropdown({
         disabled={disabled}
         onClick={() => !disabled && onOpenChange(!open)}
         className={cn(
-          "flex h-11 w-full items-center justify-between rounded-xl border border-border bg-background/50 px-4 text-left text-sm",
-          "focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-primary/50",
+          "flex h-9 w-full items-center justify-between rounded-md border border-border bg-card px-3 text-left text-sm",
+          "focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-primary",
           "disabled:cursor-not-allowed disabled:opacity-60",
-          error && "border-destructive focus:ring-destructive/50"
+          error && "border-destructive focus:ring-destructive/40"
         )}
       >
         <span className={cn("truncate", !selectedLabel && "text-muted-foreground")}>

@@ -11,7 +11,7 @@ export function PlaceholderPage({ title, basePath }: PlaceholderPageProps) {
   const isDashboard = title === "Dashboard";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-5">
       <div>
         <Breadcrumb
           items={
@@ -23,17 +23,19 @@ export function PlaceholderPage({ title, basePath }: PlaceholderPageProps) {
                 ]
           }
         />
-        <h1 className="mt-2 text-2xl font-bold tracking-tight">{title}</h1>
-        <p className="text-muted-foreground mt-1">
-          This module will be available in a future update.
+        <h1 className="mt-2 text-xl font-semibold tracking-tight md:text-2xl">
+          {title}
+        </h1>
+        <p className="mt-1 text-[13px] text-muted-foreground">
+          This module is not available yet. Check back after the next release.
         </p>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card">
+      <div className="rounded-lg border border-border bg-card">
         <EmptyState
-          icon={<Construction className="h-8 w-8 text-muted-foreground" />}
-          title="Coming Soon"
-          description={`The ${title} module is under development. Check back later for full functionality.`}
+          icon={<Construction className="h-6 w-6" />}
+          title="Coming soon"
+          description={`We are still building ${title}. You will see a notice here when it is ready.`}
         />
       </div>
     </div>

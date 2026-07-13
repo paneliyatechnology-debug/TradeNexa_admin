@@ -49,13 +49,14 @@ export function Modal({
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+        className="absolute inset-0 bg-sidebar/50 animate-in fade-in duration-200"
         onClick={onClose}
         aria-hidden
       />
       <div
         className={cn(
-          "relative z-10 flex w-full max-w-md max-h-[min(92vh,44rem)] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl",
+          "relative z-10 flex w-full max-w-md max-h-[min(92vh,44rem)] flex-col overflow-hidden rounded-lg border border-border bg-card",
+          "shadow-[var(--shadow-modal)]",
           "animate-in fade-in zoom-in-95 duration-200",
           className
         )}
@@ -64,20 +65,20 @@ export function Modal({
         aria-labelledby={title ? "modal-title" : undefined}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start gap-3 border-b border-border px-5 py-4 sm:px-6">
+        <div className="flex items-start gap-3 border-b border-border px-4 py-3.5 sm:px-5">
           {icon && (
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-accent text-primary">
               {icon}
             </div>
           )}
           <div className="min-w-0 flex-1 pt-0.5">
             {title && (
-              <h2 id="modal-title" className="text-lg font-semibold leading-tight">
+              <h2 id="modal-title" className="text-base font-semibold leading-tight">
                 {title}
               </h2>
             )}
             {description && (
-              <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+              <p className="mt-0.5 text-[13px] text-muted-foreground">{description}</p>
             )}
           </div>
           <Button
@@ -85,7 +86,7 @@ export function Modal({
             size="icon"
             onClick={onClose}
             aria-label="Close modal"
-            className="shrink-0 -mr-1"
+            className="shrink-0 -mr-1 h-8 w-8"
           >
             <X className="h-4 w-4" />
           </Button>
@@ -95,7 +96,7 @@ export function Modal({
           <div
             className={cn(
               "flex min-h-0 flex-1 flex-col overflow-hidden",
-              footer ? "overflow-y-auto px-5 py-5 sm:px-6" : ""
+              footer ? "overflow-y-auto px-4 py-4 sm:px-5" : ""
             )}
           >
             {children}
@@ -103,7 +104,7 @@ export function Modal({
         )}
 
         {footer && (
-          <div className="shrink-0 border-t border-border bg-card px-5 py-4 sm:px-6">
+          <div className="shrink-0 border-t border-border bg-card px-4 py-3.5 sm:px-5">
             {footer}
           </div>
         )}

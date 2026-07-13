@@ -55,30 +55,25 @@ export function StatCard({
   const Icon = icon ? iconMap[icon] ?? Activity : Activity;
 
   return (
-    <Card
-      className={cn(
-        "group hover:shadow-md hover:border-primary/20 transition-all duration-300",
-        className
-      )}
-    >
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-2xl font-bold tracking-tight">{value}</p>
+    <Card className={cn("transition-colors hover:border-primary/30", className)}>
+      <CardContent className="p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1.5 min-w-0">
+            <p className="text-[13px] font-medium text-muted-foreground">{title}</p>
+            <p className="text-xl font-semibold tracking-tight font-data">{value}</p>
             {change && (
               <div className="flex items-center gap-1">
                 {trend === "up" && (
-                  <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+                  <TrendingUp className="h-3.5 w-3.5 text-success" />
                 )}
                 {trend === "down" && (
-                  <TrendingDown className="h-3.5 w-3.5 text-red-500" />
+                  <TrendingDown className="h-3.5 w-3.5 text-destructive" />
                 )}
                 <span
                   className={cn(
                     "text-xs font-medium",
-                    trend === "up" && "text-emerald-600",
-                    trend === "down" && "text-red-600",
+                    trend === "up" && "text-success",
+                    trend === "down" && "text-destructive",
                     trend === "neutral" && "text-muted-foreground"
                   )}
                 >
@@ -87,8 +82,8 @@ export function StatCard({
               </div>
             )}
           </div>
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform duration-300 group-hover:scale-110">
-            <Icon className="h-5 w-5" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-accent text-primary">
+            <Icon className="h-4 w-4" />
           </div>
         </div>
       </CardContent>

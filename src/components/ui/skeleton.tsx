@@ -8,7 +8,7 @@ export function Skeleton({ className }: SkeletonProps) {
   return (
     <div
       className={cn(
-        "animate-pulse rounded-xl bg-muted",
+        "animate-pulse rounded-md bg-muted",
         className
       )}
     />
@@ -17,14 +17,14 @@ export function Skeleton({ className }: SkeletonProps) {
 
 export function CardSkeleton() {
   return (
-    <div className="rounded-2xl border border-border p-6 space-y-4">
+    <div className="rounded-lg border border-border p-4 space-y-3">
       <div className="flex items-start justify-between">
         <div className="space-y-2">
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-3.5 w-24" />
+          <Skeleton className="h-7 w-28" />
           <Skeleton className="h-3 w-16" />
         </div>
-        <Skeleton className="h-11 w-11 rounded-xl" />
+        <Skeleton className="h-9 w-9 rounded-md" />
       </div>
     </div>
   );
@@ -32,19 +32,19 @@ export function CardSkeleton() {
 
 export function DashboardSkeleton() {
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-5">
       <div className="space-y-2">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-4 w-72" />
+        <Skeleton className="h-7 w-44" />
+        <Skeleton className="h-4 w-64" />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
           <CardSkeleton key={i} />
         ))}
       </div>
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Skeleton className="h-64 rounded-2xl" />
-        <Skeleton className="h-64 rounded-2xl" />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Skeleton className="h-56 rounded-lg" />
+        <Skeleton className="h-56 rounded-lg" />
       </div>
     </div>
   );

@@ -39,7 +39,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <label
             htmlFor={inputId}
             className={cn(
-              "block text-sm font-medium text-foreground",
+              "block text-[13px] font-medium text-foreground",
               isDateInput && "cursor-pointer"
             )}
             onClick={() => {
@@ -62,10 +62,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           aria-required={required || undefined}
           onClick={handleClick}
           className={cn(
-            "flex h-11 w-full rounded-xl border border-border bg-background/50 px-4 py-2 text-sm",
+            "flex h-9 w-full rounded-md border border-border bg-card px-3 py-2 text-sm",
             "placeholder:text-muted-foreground",
-            "transition-all duration-200",
-            "focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-primary/50",
+            "transition-colors duration-150",
+            "focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-primary",
             "disabled:cursor-not-allowed disabled:opacity-50",
             isDateInput && [
               "relative cursor-pointer",
@@ -76,13 +76,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               "[&::-webkit-calendar-picker-indicator]:cursor-pointer",
               "[&::-webkit-calendar-picker-indicator]:opacity-0",
             ],
-            error && "border-destructive focus:ring-destructive/50",
+            error && "border-destructive focus:ring-destructive/40 focus:border-destructive",
             className
           )}
           {...props}
         />
         {error && (
-          <p className="text-xs text-destructive font-medium">{error}</p>
+          <p className="text-xs font-medium text-destructive">{error}</p>
         )}
         {hint && !error && (
           <p className="text-xs text-muted-foreground">{hint}</p>

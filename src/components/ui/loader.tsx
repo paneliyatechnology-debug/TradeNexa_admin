@@ -25,7 +25,7 @@ export function PageLoader() {
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
         <Loader size="lg" />
-        <p className="text-sm text-muted-foreground animate-pulse">Loading...</p>
+        <p className="text-[13px] text-muted-foreground">Loading…</p>
       </div>
     </div>
   );

@@ -9,8 +9,8 @@ interface AvatarProps {
 
 const sizes = {
   sm: "h-8 w-8 text-xs",
-  md: "h-10 w-10 text-sm",
-  lg: "h-12 w-12 text-base",
+  md: "h-9 w-9 text-[13px]",
+  lg: "h-10 w-10 text-sm",
 };
 
 function getInitials(name: string): string {
@@ -29,7 +29,7 @@ export function Avatar({ name, src, size = "md", className }: AvatarProps) {
         src={src}
         alt={name}
         className={cn(
-          "rounded-full object-cover ring-2 ring-border",
+          "rounded-full object-cover ring-1 ring-border",
           sizes[size],
           className
         )}
@@ -41,8 +41,7 @@ export function Avatar({ name, src, size = "md", className }: AvatarProps) {
     <div
       className={cn(
         "flex items-center justify-center rounded-full font-semibold",
-        "bg-gradient-to-br from-primary/80 to-primary text-primary-foreground",
-        "ring-2 ring-border",
+        "bg-accent text-primary ring-1 ring-border",
         sizes[size],
         className
       )}

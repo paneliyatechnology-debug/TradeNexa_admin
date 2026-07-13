@@ -152,8 +152,8 @@ export function ProductDecisionDialog({
         onSubmit={remarksRequired ? handleRemarksSubmit : handleApproveSubmit}
         className="space-y-4 px-5 py-5 sm:px-6"
       >
-        <div className="rounded-xl border border-border bg-muted/20 px-3 py-2.5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="rounded-md border border-border bg-muted/30 px-3 py-2.5">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             Selected
           </p>
           <ul className="mt-1.5 space-y-1 text-sm text-foreground">
@@ -171,7 +171,7 @@ export function ProductDecisionDialog({
         <div>
           <label
             htmlFor={`${formId}-remarks`}
-            className="mb-1.5 block text-sm font-medium text-foreground"
+            className="mb-1.5 block text-[13px] font-medium text-foreground"
           >
             {config.remarksLabel}
             {remarksRequired ? (
@@ -184,9 +184,9 @@ export function ProductDecisionDialog({
             placeholder={config.remarksPlaceholder}
             disabled={loading}
             className={cn(
-              "w-full resize-y rounded-xl border bg-background px-3 py-2.5 text-sm",
+              "w-full resize-y rounded-md border bg-card px-3 py-2.5 text-sm",
               "placeholder:text-muted-foreground/70",
-              "focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-ring/50",
+              "focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40",
               "disabled:cursor-not-allowed disabled:opacity-60",
               remarksError ? "border-destructive" : "border-border"
             )}
@@ -206,7 +206,7 @@ export function ProductDecisionDialog({
                   ? "Minimum 10 characters."
                   : "Optional. Minimum 10 characters if provided.")}
             </p>
-            <p className="shrink-0 text-xs text-muted-foreground">
+            <p className="shrink-0 text-xs text-muted-foreground font-data">
               {remarksLength}/2000
             </p>
           </div>
@@ -218,7 +218,6 @@ export function ProductDecisionDialog({
             variant="outline"
             onClick={onClose}
             disabled={loading}
-            className="h-11 rounded-xl"
           >
             Cancel
           </Button>
@@ -226,7 +225,6 @@ export function ProductDecisionDialog({
             type="submit"
             variant={config.submitVariant}
             loading={loading}
-            className="h-11 rounded-xl"
           >
             {config.submitLabel}
             {count > 1 ? ` (${count})` : ""}

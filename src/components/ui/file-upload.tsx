@@ -105,7 +105,7 @@ export function FileUpload({
 
   return (
     <div className="space-y-1.5">
-      <label htmlFor={inputId} className="block text-sm font-medium text-foreground">
+      <label htmlFor={inputId} className="block text-[13px] font-medium text-foreground">
         {label}
         {required && <span className="text-destructive"> *</span>}
       </label>
@@ -121,13 +121,13 @@ export function FileUpload({
 
       <div
         className={cn(
-          "relative w-full overflow-hidden rounded-xl border bg-muted/15 transition-colors",
+          "relative w-full overflow-hidden rounded-md border bg-muted/20 transition-colors",
           boxHeight,
           previewUrl
             ? "border-border"
             : displayUrl
               ? "border-border"
-              : "border-dashed border-border hover:border-primary/40 hover:bg-primary/5",
+              : "border-dashed border-border hover:border-primary/50 hover:bg-accent",
           error && "border-destructive"
         )}
       >
@@ -171,20 +171,20 @@ export function FileUpload({
               <div className="pointer-events-none absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/5" />
             </button>
 
-            <div className="pointer-events-none absolute right-2 top-2 rounded-lg bg-background/90 px-2 py-1 text-[10px] font-medium text-muted-foreground opacity-0 shadow-sm transition-opacity group-hover:opacity-100">
+            <div className="pointer-events-none absolute right-2 top-2 rounded-md bg-card/95 px-2 py-1 text-[10px] font-medium text-muted-foreground opacity-0 border border-border transition-opacity group-hover:opacity-100">
               Click to change
             </div>
 
             <button
               type="button"
               onClick={handleRemove}
-              className="absolute left-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-lg bg-background/90 text-foreground shadow-sm hover:bg-background"
+              className="absolute left-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-foreground hover:bg-accent"
               aria-label={`Remove ${label}`}
             >
               <X className="h-3.5 w-3.5" />
             </button>
 
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 border-t border-border/80 bg-background/90 px-3 py-2">
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 border-t border-border bg-card/95 px-3 py-2">
               <p className="truncate text-xs text-muted-foreground">
                 {value?.name ?? (resolvedExistingUrl ? "Current file" : "")}
               </p>
@@ -212,8 +212,8 @@ export function FileUpload({
           >
             <div
               className={cn(
-                "flex shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary",
-                isCompact ? "h-9 w-9" : "h-10 w-10 rounded-full"
+                "flex shrink-0 items-center justify-center rounded-md bg-accent text-primary",
+                isCompact ? "h-9 w-9" : "h-10 w-10"
               )}
             >
               {isCompact ? (

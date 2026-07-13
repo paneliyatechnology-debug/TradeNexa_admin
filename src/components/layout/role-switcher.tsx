@@ -21,7 +21,7 @@ export function RoleSwitcher() {
       <label htmlFor="role-switcher" className="sr-only">
         Switch admin panel role
       </label>
-      <div className="flex items-center gap-2 rounded-xl border border-border bg-background/60 px-2 py-1">
+      <div className="flex items-center gap-2 rounded-md border border-border bg-card px-2 py-1">
         <Users className="h-4 w-4 text-muted-foreground" />
         <select
           id="role-switcher"
@@ -37,8 +37,8 @@ export function RoleSwitcher() {
             switchPreviewRole(nextRole);
           }}
           className={cn(
-            "h-8 min-w-[9.5rem] rounded-lg border-0 bg-transparent pr-6 text-sm font-medium",
-            "focus:outline-none focus:ring-2 focus:ring-ring/50"
+            "h-8 min-w-[9.5rem] rounded-md border-0 bg-transparent pr-6 text-[13px] font-medium",
+            "focus:outline-none focus:ring-2 focus:ring-ring/40"
           )}
         >
           {ALL_USER_ROLES.map((item) => (

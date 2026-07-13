@@ -1,23 +1,56 @@
 @import "tailwindcss";
 
+/**
+ * Trade Ledger — TradeNexa B2B admin design tokens
+ * Canvas / Surface / Ink / Accent / Line + semantic statuses
+ */
 :root {
-  --background: #fafafa;
-  --foreground: #0a0a0a;
+  /* Core */
+  --background: #f4f6f8;
+  --foreground: #0b1f2a;
   --card: #ffffff;
-  --card-foreground: #0a0a0a;
-  --primary: #2563eb;
+  --card-foreground: #0b1f2a;
+
+  /* Accent (teal) — actions, active nav, focus */
+  --primary: #0e7c6b;
   --primary-foreground: #ffffff;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #18181b;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --accent: #f4f4f5;
-  --accent-foreground: #18181b;
-  --destructive: #ef4444;
+
+  /* Soft fills */
+  --secondary: #e8eef2;
+  --secondary-foreground: #0b1f2a;
+  --muted: #e8eef2;
+  --muted-foreground: #5b6b76;
+  --accent: #e4f3ef;
+  --accent-foreground: #0b1f2a;
+
+  /* Chrome */
+  --sidebar: #0b1f2a;
+  --sidebar-foreground: #d7dee5;
+  --sidebar-muted: #8a9aa6;
+  --sidebar-border: #1a3342;
+  --sidebar-hover: #143041;
+  --sidebar-active: #0e7c6b;
+
+  /* Semantic */
+  --success: #1b7f5a;
+  --success-foreground: #ffffff;
+  --warning: #b45309;
+  --warning-foreground: #ffffff;
+  --destructive: #c23b3b;
   --destructive-foreground: #ffffff;
-  --border: #e4e4e7;
-  --ring: #2563eb;
-  --radius: 0.75rem;
+  --info: #1d6b8a;
+  --info-foreground: #ffffff;
+
+  /* Edges & focus */
+  --border: #d7dee5;
+  --ring: #0e7c6b;
+  --ring-offset: #f4f6f8;
+
+  /* Radius — 8px default (dense B2B) */
+  --radius: 0.5rem;
+
+  /* Elevation */
+  --shadow-modal: 0 8px 24px rgba(11, 31, 42, 0.08);
 }
 
 @theme inline {
@@ -35,10 +68,25 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --color-border: var(--border);
   --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-active: var(--sidebar-active);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
 }
@@ -51,12 +99,50 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Dense data / IDs */
+.font-data {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ledger table signature: zebra + hover left bar */
+.ledger-table tbody tr {
+  position: relative;
+  transition: background-color 0.15s ease;
+}
+
+.ledger-table tbody tr:nth-child(even) {
+  background-color: color-mix(in srgb, var(--background) 70%, transparent);
+}
+
+.ledger-table tbody tr:hover {
+  background-color: color-mix(in srgb, var(--accent) 55%, var(--card));
+}
+
+.ledger-table tbody tr:hover::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--primary);
+  border-radius: 0 1px 1px 0;
+}
+
+.ledger-table thead tr {
+  background: color-mix(in srgb, var(--background) 85%, var(--card));
 }
 
 .glass {
-  background: color-mix(in srgb, var(--card) 80%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 /* Custom scrollbar */
@@ -78,10 +164,9 @@ body {
   background: var(--muted-foreground);
 }
 
-/* Sidebar nav — dedicated scrollbar */
 .sidebar-nav-scroll {
   scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
+  scrollbar-color: var(--sidebar-border) transparent;
 }
 
 .sidebar-nav-scroll::-webkit-scrollbar {
@@ -94,15 +179,15 @@ body {
 }
 
 .sidebar-nav-scroll::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--muted-foreground) 35%, transparent);
+  background: color-mix(in srgb, var(--sidebar-muted) 45%, transparent);
   border-radius: 999px;
 }
 
 .sidebar-nav-scroll::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--muted-foreground) 55%, transparent);
+  background: color-mix(in srgb, var(--sidebar-muted) 70%, transparent);
 }
 
-/* Animations */
+/* Subtle motion only */
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -123,13 +208,18 @@ body {
   to { transform: translateY(0); opacity: 1; }
 }
 
+@keyframes slide-in-from-left-1 {
+  from { transform: translateX(-0.25rem); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
 @keyframes zoom-in-95 {
-  from { transform: scale(0.95); opacity: 0; }
+  from { transform: scale(0.98); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
 
 .animate-in {
-  animation-duration: 0.3s;
+  animation-duration: 0.2s;
   animation-fill-mode: both;
   animation-timing-function: ease-out;
 }
@@ -150,8 +240,16 @@ body {
   animation-name: slide-in-from-top-2;
 }
 
+.slide-in-from-left-1 {
+  animation-name: slide-in-from-left-1;
+}
+
 .zoom-in-95 {
   animation-name: zoom-in-95;
+}
+
+.duration-150 {
+  animation-duration: 0.15s;
 }
 
 .duration-200 {
@@ -162,48 +260,30 @@ body {
   animation-duration: 0.3s;
 }
 
-.duration-500 {
-  animation-duration: 0.5s;
-}
-
-/* Login page */
+/* Login — ink chrome, no mesh flourishes */
 .login-page-bg {
-  background:
-    linear-gradient(135deg, #0f172a 0%, #1e3a5f 40%, #1d4ed8 100%);
+  background: var(--sidebar);
 }
 
 .login-page-bg::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 80% 60% at 20% 50%, rgba(59, 130, 246, 0.25) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 80% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse 50% 40% at 60% 80%, rgba(37, 99, 235, 0.2) 0%, transparent 50%);
-  pointer-events: none;
+  content: none;
 }
 
 .login-card {
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.5),
-    0 8px 40px rgba(0, 0, 0, 0.08),
-    0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-modal);
+  border: 1px solid var(--border);
 }
 
 .login-input {
-  border-color: color-mix(in srgb, var(--border) 80%, transparent);
+  border-color: var(--border);
 }
 
 .login-input:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
 }
 
-/* Login page gradient mesh (legacy) */
 .login-mesh {
-  background:
-    radial-gradient(at 20% 20%, color-mix(in srgb, var(--primary) 15%, transparent) 0%, transparent 50%),
-    radial-gradient(at 80% 80%, color-mix(in srgb, var(--primary) 10%, transparent) 0%, transparent 50%),
-    radial-gradient(at 50% 50%, color-mix(in srgb, var(--primary) 5%, transparent) 0%, transparent 70%);
+  background: transparent;
 }

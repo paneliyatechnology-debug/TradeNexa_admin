@@ -14,11 +14,11 @@ export function SuperAdminDashboard() {
   const data = SUPER_ADMIN_DASHBOARD;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-5">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Super Admin Dashboard</h1>
+        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Super Admin Dashboard</h1>
         <p className="text-muted-foreground mt-1">
-          Platform overview and system management
+          Monitor platform health and manage system operations.
         </p>
       </div>
 
@@ -28,16 +28,16 @@ export function SuperAdminDashboard() {
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 md:gap-5 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             {data.recentActivity.map((activity) => (
               <div
                 key={activity.id}
-                className="flex items-start gap-3 rounded-xl p-3 hover:bg-muted/50 transition-colors"
+                className="flex items-start gap-3 rounded-md p-3 hover:bg-muted/50 transition-colors"
               >
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                   <Zap className="h-4 w-4 text-primary" />
@@ -64,13 +64,13 @@ export function SuperAdminDashboard() {
             {data.systemStatus.map((system) => (
               <div
                 key={system.name}
-                className="flex items-center justify-between rounded-xl border border-border p-3"
+                className="flex items-center justify-between rounded-md border border-border p-3"
               >
                 <div className="flex items-center gap-3">
                   {system.status === "operational" ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    <CheckCircle2 className="h-4 w-4 text-success" />
                   ) : (
-                    <AlertCircle className="h-4 w-4 text-amber-500" />
+                    <AlertCircle className="h-4 w-4 text-warning" />
                   )}
                   <span className="text-sm font-medium">{system.name}</span>
                 </div>
@@ -99,7 +99,7 @@ export function SuperAdminDashboard() {
             {data.quickActions.map((action) => (
               <button
                 key={action.label}
-                className="flex items-center justify-between rounded-xl border border-border p-4 text-left hover:bg-muted/50 hover:border-primary/20 transition-all group"
+                className="flex items-center justify-between rounded-md border border-border p-4 text-left hover:bg-muted/50 hover:border-primary/20 transition-all group"
               >
                 <span className="text-sm font-medium">{action.label}</span>
                 <div className="flex items-center gap-2">
@@ -121,7 +121,7 @@ export function SuperAdminDashboard() {
             {data.notifications.map((notification) => (
               <div
                 key={notification.id}
-                className="flex items-start gap-3 rounded-xl p-3 hover:bg-muted/50 transition-colors"
+                className="flex items-start gap-3 rounded-md p-3 hover:bg-muted/50 transition-colors"
               >
                 <div
                   className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${

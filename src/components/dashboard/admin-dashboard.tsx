@@ -15,11 +15,11 @@ export function AdminDashboard() {
   } as const;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-5">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Admin Dashboard</h1>
+        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Admin Dashboard</h1>
         <p className="text-muted-foreground mt-1">
-          Manage marketplace operations and monitor activity
+          Manage marketplace operations and monitor activity.
         </p>
       </div>
 
@@ -29,19 +29,19 @@ export function AdminDashboard() {
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 md:gap-5 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Recent Activities</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             {data.recentActivities.map((activity) => (
               <div
                 key={activity.id}
-                className="flex items-start gap-3 rounded-xl p-3 hover:bg-muted/50 transition-colors"
+                className="flex items-start gap-3 rounded-md p-3 hover:bg-muted/50 transition-colors"
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
-                  <Activity className="h-4 w-4 text-blue-500" />
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                  <Activity className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">{activity.action}</p>
@@ -63,7 +63,7 @@ export function AdminDashboard() {
             {data.pendingTasks.map((task) => (
               <div
                 key={task.id}
-                className="flex items-center justify-between rounded-xl border border-border p-3"
+                className="flex items-center justify-between rounded-md border border-border p-3"
               >
                 <div>
                   <p className="text-sm font-medium">{task.task}</p>
@@ -85,7 +85,7 @@ export function AdminDashboard() {
             <CardTitle>Statistics</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {data.statistics.map((stat) => (
                 <div key={stat.label} className="space-y-2">
                   <div className="flex items-center justify-between">

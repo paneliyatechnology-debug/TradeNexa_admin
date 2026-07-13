@@ -11,6 +11,7 @@ import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { IconButton } from "@/components/ui/icon-button";
 import { Loader } from "@/components/ui/loader";
 import { Modal } from "@/components/ui/modal";
 import { Pagination } from "@/components/ui/pagination";
@@ -208,14 +209,14 @@ function ProductThumb({
 
   if (!src) {
     return (
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-dashed border-border bg-muted/40 text-muted-foreground">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-dashed border-border bg-muted text-muted-foreground">
         <ImageIcon className="h-4 w-4" />
       </div>
     );
   }
 
   return (
-    <div className="h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-border bg-muted/20">
+    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border border-border bg-muted/40">
       <img
         src={src}
         alt={name}
@@ -243,10 +244,10 @@ function StatusFilterChips({
             type="button"
             onClick={() => onChange(option.value)}
             className={cn(
-              "rounded-lg border px-3 py-1.5 text-xs font-medium transition-all sm:text-sm",
+              "rounded-md border px-3 py-1.5 text-xs font-medium transition-colors sm:text-[13px]",
               isActive
-                ? "border-primary/30 bg-primary text-primary-foreground shadow-sm"
-                : "border-border bg-background/60 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                ? "border-primary/30 bg-primary text-primary-foreground"
+                : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground"
             )}
           >
             {option.label}
@@ -592,7 +593,7 @@ export function ProductApprovalManagement({
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
                 placeholder="Search product, seller, category, brand…"
-                className="h-11 w-full rounded-xl border border-border bg-background/50 pl-10 pr-4 text-sm focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-ring/50"
+                className="h-9 w-full rounded-md border border-border bg-card pl-9 pr-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40"
               />
             </div>
             <StatusFilterChips
@@ -609,9 +610,9 @@ export function ProductApprovalManagement({
         <CardContent className="p-0">
           {loading && products.results.length === 0 ? (
             <div className="overflow-x-auto px-4 py-4 sm:px-0">
-              <table className="w-full min-w-[64rem] text-sm">
+              <table className="ledger-table w-full min-w-[64rem] text-sm">
                 <thead>
-                  <tr className="border-b border-border bg-muted/30">
+                  <tr className="border-b border-border">
                     {Array.from({ length: 8 }).map((_, index) => (
                       <th key={index} className="px-4 py-3 sm:px-6">
                         <Skeleton className="h-4 w-16" />
@@ -623,7 +624,7 @@ export function ProductApprovalManagement({
                   {Array.from({ length: 5 }).map((_, index) => (
                     <tr key={index}>
                       <td className="px-4 py-3.5 sm:px-6" colSpan={8}>
-                        <Skeleton className="h-11 w-full" />
+                        <Skeleton className="h-10 w-full" />
                       </td>
                     </tr>
                   ))}
@@ -646,9 +647,9 @@ export function ProductApprovalManagement({
             <>
               <TableLoadingOverlay loading={loading}>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[64rem] text-sm">
+                  <table className="ledger-table w-full min-w-[64rem] text-sm">
                     <thead>
-                      <tr className="border-b border-border bg-muted/30">
+                      <tr className="border-b border-border">
                         <th className="w-12 px-4 py-3 sm:px-6">
                           <input
                             type="checkbox"
@@ -705,7 +706,7 @@ export function ProductApprovalManagement({
                         return (
                           <tr
                             key={item.id}
-                            className="group transition-colors hover:bg-muted/25"
+                            className="group"
                           >
                             <td className="px-4 py-3.5 sm:px-6">
                               <input
@@ -765,51 +766,43 @@ export function ProductApprovalManagement({
                               </p>
                             </td>
                             <td className="px-4 py-3.5 sm:px-6">
-                              <div className="flex items-center justify-end gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                              <div className="flex items-center justify-end gap-1.5">
+                                <IconButton
+                                  label="View details"
+                                  tone="view"
                                   onClick={() => void openDetail(item)}
-                                  aria-label={`View ${item.name}`}
                                 >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
+                                  <Eye className="h-3.5 w-3.5" />
+                                </IconButton>
                                 {inReview ? (
                                   <>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-9 w-9 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700"
+                                    <IconButton
+                                      label="Approve"
+                                      tone="success"
                                       onClick={() =>
                                         openDecision("approve", [item])
                                       }
-                                      aria-label={`Approve ${item.name}`}
                                     >
-                                      <CheckCircle2 className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-9 w-9 text-amber-600 hover:bg-amber-500/10 hover:text-amber-700"
+                                      <CheckCircle2 className="h-3.5 w-3.5" />
+                                    </IconButton>
+                                    <IconButton
+                                      label="Request revision"
+                                      tone="warning"
                                       onClick={() =>
                                         openDecision("request_revision", [item])
                                       }
-                                      aria-label={`Request revision for ${item.name}`}
                                     >
-                                      <MessageSquareWarning className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-9 w-9 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                                      <MessageSquareWarning className="h-3.5 w-3.5" />
+                                    </IconButton>
+                                    <IconButton
+                                      label="Reject"
+                                      tone="danger"
                                       onClick={() =>
                                         openDecision("reject", [item])
                                       }
-                                      aria-label={`Reject ${item.name}`}
                                     >
-                                      <XCircle className="h-4 w-4" />
-                                    </Button>
+                                      <XCircle className="h-3.5 w-3.5" />
+                                    </IconButton>
                                   </>
                                 ) : null}
                               </div>

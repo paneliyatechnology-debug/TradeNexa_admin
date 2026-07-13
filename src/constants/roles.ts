@@ -14,9 +14,9 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 };
 
 export const ROLE_COLORS: Record<UserRole, string> = {
-  SUPER_ADMIN: "bg-violet-500/10 text-violet-600 border-violet-500/20",
-  ADMIN: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-  SUPPORT_ADMIN: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+  SUPER_ADMIN: "bg-primary/10 text-primary border-primary/20",
+  ADMIN: "bg-info/10 text-info border-info/20",
+  SUPPORT_ADMIN: "bg-success/10 text-success border-success/20",
 };
 
 export function canAccessRoleRoute(role: UserRole, pathname: string): boolean {

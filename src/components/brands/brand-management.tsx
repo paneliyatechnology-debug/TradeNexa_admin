@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { IconButton } from "@/components/ui/icon-button";
 import { Modal } from "@/components/ui/modal";
 import { Pagination } from "@/components/ui/pagination";
 import { DashboardSkeleton, Skeleton } from "@/components/ui/skeleton";
@@ -120,7 +121,7 @@ function BrandTableHeader({
 
   return (
     <thead>
-      <tr className="border-b border-border bg-muted/30">
+      <tr className="border-b border-border">
         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:px-6">
           Logo
         </th>
@@ -183,8 +184,8 @@ function BrandLogo({
   const src = resolveMediaDisplayUrl(logo);
   const isLarge = size === "lg";
   const frameClass = cn(
-    "flex shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-gradient-to-br from-background to-muted/40",
-    isLarge ? "h-14 w-14 ring-2 ring-primary/5" : "h-11 w-11"
+    "flex shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted/40",
+    isLarge ? "h-14 w-14 ring-2 ring-primary/5" : "h-10 w-10"
   );
 
   if (!src) {
@@ -233,7 +234,7 @@ function BrandTableRow({
   const website = brand.website?.trim();
 
   return (
-    <tr className="group transition-colors hover:bg-muted/25">
+    <tr className="group">
       <td className="px-4 py-3.5 sm:px-6">
         <BrandLogo logo={brand.logo} name={brand.name} />
       </td>
@@ -269,25 +270,13 @@ function BrandTableRow({
         <YesNoValue value={brand.is_featured} />
       </td>
       <td className="px-4 py-3.5 sm:px-6">
-        <div className="flex items-center justify-end gap-1 opacity-90 transition-opacity group-hover:opacity-100">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 text-muted-foreground hover:text-foreground"
-            onClick={onEdit}
-            aria-label={`Edit ${brand.name}`}
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-            onClick={onDelete}
-            aria-label={`Delete ${brand.name}`}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+        <div className="flex items-center justify-end gap-1.5">
+          <IconButton label="Edit brand" tone="view" onClick={onEdit}>
+            <Pencil className="h-3.5 w-3.5" />
+          </IconButton>
+          <IconButton label="Delete brand" tone="danger" onClick={onDelete}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </IconButton>
         </div>
       </td>
     </tr>
@@ -300,7 +289,7 @@ function TableRowsSkeleton({ rows = 5 }: { rows?: number }) {
       {Array.from({ length: rows }).map((_, index) => (
         <tr key={index} className="border-b border-border">
           <td className="px-4 py-3.5 sm:px-6">
-            <Skeleton className="h-11 w-11 rounded-xl" />
+            <Skeleton className="h-10 w-10 rounded-md" />
           </td>
           <td className="px-4 py-3.5 sm:px-6">
             <Skeleton className="h-4 w-32" />
@@ -352,10 +341,10 @@ function BoolFilter({
   return (
     <div
       className={cn(
-        "rounded-xl border p-3 transition-colors",
+        "rounded-md border p-3 transition-colors",
         isFiltered
-          ? "border-primary/30 bg-primary/5"
-          : "border-border bg-muted/20"
+          ? "border-primary/30 bg-accent"
+          : "border-border bg-muted/40"
       )}
     >
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground">
@@ -586,7 +575,7 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
       <div>
         <h1 className="text-xl font-bold tracking-tight sm:mt-2 md:text-2xl">{title}</h1>
         <p className="mt-1 text-sm text-muted-foreground md:text-base">
-          Manage marketplace brands, logos, visibility, and featured listings.
+          Add and organize brands with logos to create trusted marketplace listings.
         </p>
       </div>
 
@@ -615,7 +604,7 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
                 placeholder="Search brands..."
-                className="h-11 w-full rounded-xl border border-border bg-background/50 pl-10 pr-4 text-sm focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-ring/50"
+                className="h-9 w-full rounded-md border border-border bg-card pl-9 pr-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40"
               />
             </div>
 
@@ -642,7 +631,7 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
         <CardContent className="p-0">
           {loading && brands.results.length === 0 ? (
             <div className="overflow-x-auto px-4 py-4 sm:px-0">
-              <table className="w-full min-w-[56rem] text-sm">
+              <table className="ledger-table w-full min-w-[56rem] text-sm">
                 <BrandTableHeader
                   sortBy={sortBy}
                   sortOrder={sortOrder}
@@ -675,7 +664,7 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
             <>
               <TableLoadingOverlay loading={loading}>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[56rem] text-sm">
+                  <table className="ledger-table w-full min-w-[56rem] text-sm">
                     <BrandTableHeader
                   sortBy={sortBy}
                   sortOrder={sortOrder}
@@ -769,7 +758,7 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
         icon={<Trash2 className="h-7 w-7" />}
         preview={
           deleteBrand ? (
-            <div className="mx-auto max-w-xs overflow-hidden rounded-2xl border border-border bg-muted/20 p-4 shadow-sm">
+            <div className="mx-auto max-w-xs overflow-hidden rounded-lg border border-border bg-muted/30 p-4">
               <div className="flex items-center justify-center">
                 <BrandLogo logo={deleteBrand.logo} name={deleteBrand.name} size="lg" />
               </div>

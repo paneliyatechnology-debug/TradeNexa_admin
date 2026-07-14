@@ -118,7 +118,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Ledger table: zebra + teal hover bar */
+/* Ledger table: zebra striping */
 .ledger-table {
   border-collapse: separate;
   border-spacing: 0;
@@ -132,27 +132,8 @@ body {
   box-shadow: inset 0 -1px 0 var(--border);
 }
 
-.ledger-table tbody tr {
-  position: relative;
-}
-
 .ledger-table tbody tr:nth-child(even) {
   background-color: color-mix(in srgb, var(--background) 70%, transparent);
-}
-
-.ledger-table tbody tr:hover {
-  background-color: color-mix(in srgb, var(--accent) 55%, var(--card));
-}
-
-.ledger-table tbody tr:hover::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--primary);
-  border-radius: 0 1px 1px 0;
 }
 
 .ledger-table thead tr {

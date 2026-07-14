@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckCircle2, MessageSquareWarning, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { Textarea } from "@/components/ui/textarea";
 import type { ProductReviewItem } from "@/types/product";
 import {
   productApproveSchema,
@@ -13,7 +14,6 @@ import {
   type ProductApproveFormData,
   type ProductDecisionRemarksFormData,
 } from "@/utils/validators";
-import { cn } from "@/utils/cn";
 
 export type ProductDecisionAction = "approve" | "request_revision" | "reject";
 
@@ -169,47 +169,35 @@ export function ProductDecisionDialog({
         </div>
 
         <div>
-          <label
-            htmlFor={`${formId}-remarks`}
-            className="mb-1.5 block text-[13px] font-medium text-foreground"
-          >
-            {config.remarksLabel}
-            {remarksRequired ? (
-              <span className="text-destructive"> *</span>
-            ) : null}
-          </label>
-          <textarea
+          <div className="mb-1.5 flex items-baseline justify-between gap-2">
+            <label
+              htmlFor={`${formId}-remarks`}
+              className="block text-[13px] font-medium text-foreground"
+            >
+              {config.remarksLabel}
+              {remarksRequired ? (
+                <span className="text-destructive"> *</span>
+              ) : null}
+            </label>
+            <span className="shrink-0 text-xs text-muted-foreground font-data">
+              {remarksLength}/2000
+            </span>
+          </div>
+          <Textarea
             id={`${formId}-remarks`}
             rows={4}
             placeholder={config.remarksPlaceholder}
             disabled={loading}
-            className={cn(
-              "w-full resize-y rounded-md border bg-card px-3 py-2.5 text-sm",
-              "placeholder:text-muted-foreground/70",
-              "focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40",
-              "disabled:cursor-not-allowed disabled:opacity-60",
-              remarksError ? "border-destructive" : "border-border"
-            )}
+            hint={
+              remarksRequired
+                ? "Minimum 10 characters."
+                : "Optional. Minimum 10 characters if provided."
+            }
+            error={remarksError}
             {...(remarksRequired
               ? remarksForm.register("remarks")
               : approveForm.register("remarks"))}
           />
-          <div className="mt-1.5 flex items-start justify-between gap-2">
-            <p
-              className={cn(
-                "text-xs",
-                remarksError ? "text-destructive" : "text-muted-foreground"
-              )}
-            >
-              {remarksError ??
-                (remarksRequired
-                  ? "Minimum 10 characters."
-                  : "Optional. Minimum 10 characters if provided.")}
-            </p>
-            <p className="shrink-0 text-xs text-muted-foreground font-data">
-              {remarksLength}/2000
-            </p>
-          </div>
         </div>
 
         <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">

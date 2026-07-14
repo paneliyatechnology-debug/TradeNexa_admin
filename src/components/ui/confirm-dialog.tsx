@@ -60,7 +60,7 @@ export function ConfirmDialog({
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
       <div
-        className="absolute inset-0 bg-[color:var(--ink)]/45 animate-in fade-in duration-200"
+        className="absolute inset-0 bg-ink/45 animate-in fade-in duration-200"
         onClick={loading ? undefined : onClose}
         aria-hidden
       />
@@ -80,7 +80,7 @@ export function ConfirmDialog({
           onClick={onClose}
           disabled={loading}
           aria-label="Close dialog"
-          className="absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <X className="h-4 w-4" />
         </button>

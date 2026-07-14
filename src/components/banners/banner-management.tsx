@@ -1,17 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { toast } from "sonner";
 import { BannerForm } from "@/components/banners/banner-form";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DataTable,
+  SortableTableHead,
+  TableBody,
+  TableCell,
+  TableHeadCell,
+  TableHeadRow,
+  TableLoadingOverlay,
+  TableRow,
+} from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { IconButton } from "@/components/ui/icon-button";
 import { Modal } from "@/components/ui/modal";
 import { Pagination } from "@/components/ui/pagination";
+import { SearchField } from "@/components/ui/search-field";
 import { DashboardSkeleton, Skeleton } from "@/components/ui/skeleton";
 import { Loader } from "@/components/ui/loader";
 import { bannersService } from "@/services/banners.service";
@@ -21,15 +32,11 @@ import { parseBannerRedirectType } from "@/types/banner";
 import type { BannerFormData } from "@/utils/validators";
 import { resolveMediaDisplayUrl } from "@/utils/media-url";
 import {
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
   GripVertical,
   ImageIcon,
   Megaphone,
   Pencil,
   Plus,
-  Search,
   Trash2,
 } from "lucide-react";
 import { cn } from "@/utils/cn";
@@ -62,48 +69,6 @@ function getNextPriority(items: Banner[], total: number): number {
   return Math.max(...items.map((banner) => banner.priority), 0, total) + 1;
 }
 
-function SortableColumnHeader({
-  label,
-  column,
-  sortBy,
-  sortOrder,
-  onSort,
-}: {
-  label: string;
-  column: BannerSortBy;
-  sortBy: BannerSortBy | null;
-  sortOrder: SortOrder;
-  onSort: (column: BannerSortBy) => void;
-}) {
-  const isActive = sortBy === column;
-
-  return (
-    <th className="px-4 py-3 text-left font-medium sm:px-6">
-      <button
-        type="button"
-        onClick={() => onSort(column)}
-        className={cn(
-          "inline-flex items-center gap-1.5 rounded-md transition-colors",
-          "hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-          isActive ? "text-primary" : "text-foreground"
-        )}
-        aria-sort={isActive ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
-      >
-        <span>{label}</span>
-        {isActive ? (
-          sortOrder === "asc" ? (
-            <ArrowUp className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          ) : (
-            <ArrowDown className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          )
-        ) : (
-          <ArrowUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" aria-hidden />
-        )}
-      </button>
-    </th>
-  );
-}
-
 function BannerTableHeader({
   sortBy,
   sortOrder,
@@ -116,56 +81,35 @@ function BannerTableHeader({
   showDragColumn: boolean;
 }) {
   return (
-    <thead>
-      <tr className="border-b border-border">
-        {showDragColumn ? (
-          <th className="w-10 px-2 py-3 text-left font-medium sm:px-3" aria-label="Reorder" />
-        ) : null}
-        <th className="px-4 py-3 text-left font-medium sm:px-6">Image</th>
-        <SortableColumnHeader
-          label="Title"
-          column="title"
-          sortBy={sortBy}
-          sortOrder={sortOrder}
-          onSort={onSort}
-        />
-        <SortableColumnHeader
-          label="Priority"
-          column="priority"
-          sortBy={sortBy}
-          sortOrder={sortOrder}
-          onSort={onSort}
-        />
-        <th className="px-4 py-3 text-left font-medium sm:px-6">Redirect</th>
-        <SortableColumnHeader
-          label="Created"
-          column="created_at"
-          sortBy={sortBy}
-          sortOrder={sortOrder}
-          onSort={onSort}
-        />
-        <th className="px-4 py-3 text-left font-medium sm:px-6">Actions</th>
-      </tr>
-    </thead>
-  );
-}
-
-function TableLoadingOverlay({
-  loading,
-  children,
-}: {
-  loading: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <div className="relative">
-      {children}
-      {loading ? (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70 backdrop-blur-[1px]">
-          <Loader size="lg" />
-        </div>
+    <TableHeadRow>
+      {showDragColumn ? (
+        <TableHeadCell className="w-10 px-2 sm:px-3" aria-label="Reorder" />
       ) : null}
-    </div>
+      <TableHeadCell>Image</TableHeadCell>
+      <SortableTableHead
+        label="Title"
+        column="title"
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSort={onSort}
+      />
+      <SortableTableHead
+        label="Priority"
+        column="priority"
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSort={onSort}
+      />
+      <TableHeadCell>Redirect</TableHeadCell>
+      <SortableTableHead
+        label="Created"
+        column="created_at"
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSort={onSort}
+      />
+      <TableHeadCell>Actions</TableHeadCell>
+    </TableHeadRow>
   );
 }
 
@@ -253,17 +197,16 @@ function BannerTableRow({
   const createdLabel = formatCreatedLabel(banner.created_at);
 
   return (
-    <tr
+    <TableRow
       ref={rowRef}
       style={dragStyle}
       className={cn(
-        "group",
         dragDropEnabled && draggingBannerId === null && reorderingId === null && "will-change-transform",
         activeDrag?.id === banner.id && "bg-card ring-1 ring-inset ring-primary/20"
       )}
     >
       {dragDropEnabled ? (
-        <td className="px-2 py-3 sm:px-3">
+        <TableCell className="px-2 sm:px-3">
           <button
             type="button"
             onPointerDown={onGripPointerDown}
@@ -279,26 +222,26 @@ function BannerTableRow({
           >
             <GripVertical className="h-4 w-4" />
           </button>
-        </td>
+        </TableCell>
       ) : null}
-      <td className="px-4 py-3 sm:px-6">
+      <TableCell>
         <BannerImageThumb image={banner.image} title={banner.title} />
-      </td>
-      <td className="px-4 py-3 sm:px-6">
+      </TableCell>
+      <TableCell>
         <p className="max-w-[12rem] font-medium leading-snug sm:max-w-xs">{banner.title}</p>
-      </td>
-      <td className="px-4 py-3 sm:px-6">
+      </TableCell>
+      <TableCell>
         <Badge variant="outline">{banner.priority}</Badge>
-      </td>
-      <td className="px-4 py-3 sm:px-6">
+      </TableCell>
+      <TableCell>
         <p className="max-w-[10rem] text-sm text-muted-foreground sm:max-w-xs">
           {formatRedirectLabel(banner)}
         </p>
-      </td>
-      <td className="px-4 py-3 text-sm text-muted-foreground sm:px-6">
+      </TableCell>
+      <TableCell className="text-sm text-muted-foreground">
         {createdLabel ?? "—"}
-      </td>
-      <td className="px-4 py-3 sm:px-6">
+      </TableCell>
+      <TableCell>
         <div className="flex items-center gap-1.5">
           <IconButton label="Edit banner" tone="view" onClick={onEdit}>
             <Pencil className="h-3.5 w-3.5" />
@@ -307,12 +250,12 @@ function BannerTableRow({
             <Trash2 className="h-3.5 w-3.5" />
           </IconButton>
         </div>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }
 
-function TableRowsSkeleton({
+function BannerTableRowsSkeleton({
   rows = 5,
   showDragColumn,
 }: {
@@ -322,34 +265,34 @@ function TableRowsSkeleton({
   return (
     <>
       {Array.from({ length: rows }).map((_, index) => (
-        <tr key={index}>
+        <TableRow key={index}>
           {showDragColumn ? (
-            <td className="px-2 py-3 sm:px-3">
+            <TableCell className="px-2 sm:px-3">
               <Skeleton className="h-9 w-9 rounded-lg" />
-            </td>
+            </TableCell>
           ) : null}
-          <td className="px-4 py-3 sm:px-6">
+          <TableCell>
             <Skeleton className="h-14 w-20 rounded-lg" />
-          </td>
-          <td className="px-4 py-3 sm:px-6">
+          </TableCell>
+          <TableCell>
             <Skeleton className="h-4 w-36" />
-          </td>
-          <td className="px-4 py-3 sm:px-6">
+          </TableCell>
+          <TableCell>
             <Skeleton className="h-6 w-10 rounded-full" />
-          </td>
-          <td className="px-4 py-3 sm:px-6">
+          </TableCell>
+          <TableCell>
             <Skeleton className="h-4 w-28" />
-          </td>
-          <td className="px-4 py-3 sm:px-6">
+          </TableCell>
+          <TableCell>
             <Skeleton className="h-4 w-24" />
-          </td>
-          <td className="px-4 py-3 sm:px-6">
+          </TableCell>
+          <TableCell>
             <div className="flex gap-2">
               <Skeleton className="h-9 w-9 rounded-md" />
               <Skeleton className="h-9 w-9 rounded-md" />
             </div>
-          </td>
-        </tr>
+          </TableCell>
+        </TableRow>
       ))}
     </>
   );
@@ -854,8 +797,8 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
             { label: title },
           ]}
         />
-        <h1 className="mt-2 text-xl font-bold tracking-tight md:text-2xl">{title}</h1>
-        <p className="mt-1 text-sm text-muted-foreground md:text-base">
+        <h1 className="mt-2 text-xl font-semibold tracking-tight md:text-2xl">{title}</h1>
+        <p className="mt-1 text-[13px] text-muted-foreground">
           Design homepage banners and arrange them to showcase featured content.
         </p>
       </div>
@@ -889,17 +832,12 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
             </div>
           </div>
 
-          <div className="relative w-full sm:max-w-md">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="search"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Search banners..."
-              disabled={isReorderView}
-              className="h-9 w-full rounded-md border border-border bg-card pl-9 pr-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-60"
-            />
-          </div>
+          <SearchField
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder="Search banners..."
+            disabled={isReorderView}
+          />
 
           {isReorderView ? (
             <p className="text-sm text-muted-foreground">
@@ -919,18 +857,20 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
 
         <CardContent className="p-0">
           {loading && displayList.length === 0 ? (
-            <div className="overflow-x-auto px-4 py-4 sm:px-0">
-              <table className="ledger-table w-full min-w-[52rem] text-sm">
-                <BannerTableHeader
-                  sortBy={sortBy}
-                  sortOrder={sortOrder}
-                  onSort={handleColumnSort}
-                  showDragColumn={showDragColumn}
-                />
-                <tbody className="divide-y divide-border">
-                  <TableRowsSkeleton showDragColumn={showDragColumn} />
-                </tbody>
-              </table>
+            <div className="px-4 py-4 sm:px-0">
+              <DataTable minWidthClassName="min-w-[52rem]">
+                <thead>
+                  <BannerTableHeader
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onSort={handleColumnSort}
+                    showDragColumn={showDragColumn}
+                  />
+                </thead>
+                <TableBody>
+                  <BannerTableRowsSkeleton showDragColumn={showDragColumn} />
+                </TableBody>
+              </DataTable>
             </div>
           ) : displayList.length === 0 ? (
             <EmptyState
@@ -953,40 +893,38 @@ export function BannerManagement({ title, basePath }: BannerManagementProps) {
           ) : (
             <>
               <TableLoadingOverlay loading={loading}>
-                <div
-                  className={cn(
-                    "overflow-x-auto",
-                    draggingBannerId !== null && "select-none"
-                  )}
+                <DataTable
+                  minWidthClassName="min-w-[52rem]"
+                  className={cn(draggingBannerId !== null && "select-none")}
                 >
-                  <table className="ledger-table w-full min-w-[52rem] text-sm">
+                  <thead>
                     <BannerTableHeader
                       sortBy={sortBy}
                       sortOrder={sortOrder}
                       onSort={handleColumnSort}
                       showDragColumn={showDragColumn}
                     />
-                    <tbody className="divide-y divide-border">
-                      {displayList.map((banner, index) => (
-                        <BannerTableRow
-                          key={banner.id}
-                          rowRef={(element) => setRowRef(banner.id, element)}
-                          banner={banner}
-                          dragDropEnabled={showDragColumn}
-                          reorderingId={reorderingId}
-                          draggingBannerId={draggingBannerId}
-                          activeDrag={activeDrag}
-                          dragStyle={getBannerDragStyle(banner.id, index, activeDrag)}
-                          onGripPointerDown={(event) =>
-                            handleGripPointerDown(event, banner.id, index)
-                          }
-                          onEdit={() => void openEdit(banner)}
-                          onDelete={() => setDeleteBanner(banner)}
-                        />
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                  </thead>
+                  <TableBody>
+                    {displayList.map((banner, index) => (
+                      <BannerTableRow
+                        key={banner.id}
+                        rowRef={(element) => setRowRef(banner.id, element)}
+                        banner={banner}
+                        dragDropEnabled={showDragColumn}
+                        reorderingId={reorderingId}
+                        draggingBannerId={draggingBannerId}
+                        activeDrag={activeDrag}
+                        dragStyle={getBannerDragStyle(banner.id, index, activeDrag)}
+                        onGripPointerDown={(event) =>
+                          handleGripPointerDown(event, banner.id, index)
+                        }
+                        onEdit={() => void openEdit(banner)}
+                        onDelete={() => setDeleteBanner(banner)}
+                      />
+                    ))}
+                  </TableBody>
+                </DataTable>
               </TableLoadingOverlay>
 
               {!isReorderView ? (

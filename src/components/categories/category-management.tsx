@@ -1,16 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CreateCategoryForm } from "@/components/categories/create-category-form";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DataTable,
+  TableBody,
+  TableCell,
+  TableHeadCell,
+  TableHeadRow,
+  TableLoadingOverlay,
+  TableRow,
+} from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FilterChips, type FilterChipOption } from "@/components/ui/filter-chips";
 import { IconButton } from "@/components/ui/icon-button";
 import { Modal } from "@/components/ui/modal";
 import { Pagination } from "@/components/ui/pagination";
+import { SearchField } from "@/components/ui/search-field";
 import { DashboardSkeleton, Skeleton } from "@/components/ui/skeleton";
 import { Loader } from "@/components/ui/loader";
 import { categoriesService } from "@/services/categories.service";
@@ -28,7 +39,6 @@ import {
   Package,
   Pencil,
   Plus,
-  Search,
   Trash2,
 } from "lucide-react";
 
@@ -39,6 +49,12 @@ type DeleteTarget =
   | { type: "subcategory"; item: Subcategory };
 
 type ActiveFilter = "all" | "active" | "inactive";
+
+const ACTIVE_STATUS_OPTIONS: FilterChipOption<ActiveFilter>[] = [
+  { value: "all", label: "All" },
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+];
 
 function toIsActiveParam(filter: ActiveFilter): boolean | undefined {
   if (filter === "all") return undefined;
@@ -644,7 +660,7 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
     <div className="space-y-6">
       <div>
         <Breadcrumb items={breadcrumbItems} />
-        <h1 className="mt-2 text-2xl font-bold tracking-tight">{pageHeading}</h1>
+        <h1 className="mt-2 text-xl font-semibold tracking-tight md:text-2xl">{pageHeading}</h1>
       </div>
 
       {showInitialSkeleton ? (
@@ -844,40 +860,6 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
   );
 }
 
-function ActiveStatusFilter({
-  value,
-  onChange,
-}: {
-  value: ActiveFilter;
-  onChange: (value: ActiveFilter) => void;
-}) {
-  const options: { value: ActiveFilter; label: string }[] = [
-    { value: "all", label: "All" },
-    { value: "active", label: "Active" },
-    { value: "inactive", label: "Inactive" },
-  ];
-
-  return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          onClick={() => onChange(option.value)}
-          className={cn(
-            "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-            value === option.value
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-          )}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 function StatusBadge({ isActive }: { isActive: boolean }) {
   return (
     <Badge variant={isActive ? "success" : "outline"}>
@@ -964,7 +946,7 @@ function ListRowsSkeleton({ rows = 5 }: { rows?: number }) {
   return (
     <div className="divide-y divide-border">
       {Array.from({ length: rows }).map((_, index) => (
-        <div key={index} className="flex items-center gap-4 px-4 py-4 sm:px-6">
+        <div key={index} className="flex items-center gap-4 px-4 py-2.5 sm:px-6">
           <Skeleton className="h-10 w-10 shrink-0 rounded-xl" />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-4 w-40" />
@@ -972,25 +954,6 @@ function ListRowsSkeleton({ rows = 5 }: { rows?: number }) {
           </div>
         </div>
       ))}
-    </div>
-  );
-}
-
-function TableLoadingOverlay({
-  loading,
-  children,
-}: {
-  loading: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <div className="relative">
-      {children}
-      {loading && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70 backdrop-blur-[1px]">
-          <Loader size="lg" />
-        </div>
-      )}
     </div>
   );
 }
@@ -1029,20 +992,12 @@ function SearchSortToolbar<T extends string = "name">({
 }) {
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-      <div className="relative flex-1">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <input
-          type="search"
-          value={search}
-          onChange={(event) => onSearchChange(event.target.value)}
-          placeholder={searchPlaceholder}
-          className={cn(
-            "flex h-9 w-full rounded-md border border-border bg-card py-2 pl-9 pr-3 text-sm",
-            "placeholder:text-muted-foreground",
-            "focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-primary/50"
-          )}
-        />
-      </div>
+      <SearchField
+        containerClassName="flex-1"
+        value={search}
+        onChange={(event) => onSearchChange(event.target.value)}
+        placeholder={searchPlaceholder}
+      />
       <div className="flex flex-wrap items-center gap-2">
         <label className="sr-only" htmlFor={sortById}>
           Sort by
@@ -1131,7 +1086,12 @@ function CategoriesView({
         onSortByChange={onSortByChange}
         onSortOrderChange={onSortOrderChange}
       />
-      <ActiveStatusFilter value={activeFilter} onChange={onActiveFilterChange} />
+      <FilterChips
+        options={ACTIVE_STATUS_OPTIONS}
+        value={activeFilter}
+        onChange={onActiveFilterChange}
+        aria-label="Active status"
+      />
     </>
   );
 
@@ -1190,7 +1150,7 @@ function CategoriesView({
               {data.results.map((category) => (
             <div
               key={category.id}
-              className="flex items-center gap-2 px-4 py-4 sm:px-6 hover:bg-muted/50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 sm:px-6 hover:bg-accent/40 transition-colors"
             >
               <button
                 type="button"
@@ -1295,7 +1255,12 @@ function SubcategoriesView({
         onSortByChange={onSortByChange}
         onSortOrderChange={onSortOrderChange}
       />
-      <ActiveStatusFilter value={activeFilter} onChange={onActiveFilterChange} />
+      <FilterChips
+        options={ACTIVE_STATUS_OPTIONS}
+        value={activeFilter}
+        onChange={onActiveFilterChange}
+        aria-label="Active status"
+      />
     </>
   );
 
@@ -1354,7 +1319,7 @@ function SubcategoriesView({
               {data.results.map((sub) => (
             <div
               key={sub.id}
-              className="flex items-center gap-2 px-4 py-4 sm:px-6 hover:bg-muted/50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 sm:px-6 hover:bg-accent/40 transition-colors"
             >
               <button
                 type="button"
@@ -1483,60 +1448,58 @@ function ProductsView({
           </div>
         ) : (
           <TableLoadingOverlay loading={loading}>
-            <div className="overflow-x-auto">
-              <table className="ledger-table w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left font-medium px-6 py-3">ID</th>
-                    <th className="text-left font-medium px-6 py-3">Name</th>
-                    <th className="text-left font-medium px-6 py-3 hidden lg:table-cell">
-                      Supplier
-                    </th>
-                    <th className="text-left font-medium px-6 py-3 hidden md:table-cell">
-                      Price
-                    </th>
-                    <th className="text-left font-medium px-6 py-3 hidden sm:table-cell">
-                      MOQ
-                    </th>
-                    <th className="text-left font-medium px-6 py-3 hidden md:table-cell">
-                      Rating
-                    </th>
-                    <th className="text-left font-medium px-6 py-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {data.results.map((product) => (
-                    <tr key={product.id} className="group">
-                      <td className="px-6 py-3 text-muted-foreground">#{product.id}</td>
-                      <td className="px-6 py-3">
-                        <p className="font-medium">{product.name}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{product.slug}</p>
-                      </td>
-                      <td className="px-6 py-3 hidden lg:table-cell">{product.supplier_name}</td>
-                      <td className="px-6 py-3 hidden md:table-cell">
-                        {product.currency === "INR" ? "₹" : `${product.currency} `}
-                        {product.price.toLocaleString("en-IN")}
-                      </td>
-                      <td className="px-6 py-3 text-muted-foreground hidden sm:table-cell">
-                        {product.moq} {product.unit}
-                      </td>
-                      <td className="px-6 py-3 hidden md:table-cell">
-                        {product.rating.toFixed(1)}
-                      </td>
-                      <td className="px-6 py-3">
-                        <div className="flex flex-wrap gap-1.5">
-                          {product.verified && <Badge variant="success">Verified</Badge>}
-                          {product.is_trending && <Badge variant="info">Trending</Badge>}
-                          {!product.verified && !product.is_trending && (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataTable minWidthClassName="min-w-0">
+              <thead>
+                <TableHeadRow>
+                  <TableHeadCell>ID</TableHeadCell>
+                  <TableHeadCell>Name</TableHeadCell>
+                  <TableHeadCell className="hidden lg:table-cell">
+                    Supplier
+                  </TableHeadCell>
+                  <TableHeadCell className="hidden md:table-cell">
+                    Price
+                  </TableHeadCell>
+                  <TableHeadCell className="hidden sm:table-cell">
+                    MOQ
+                  </TableHeadCell>
+                  <TableHeadCell className="hidden md:table-cell">
+                    Rating
+                  </TableHeadCell>
+                  <TableHeadCell>Status</TableHeadCell>
+                </TableHeadRow>
+              </thead>
+              <TableBody>
+                {data.results.map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell className="text-muted-foreground">#{product.id}</TableCell>
+                    <TableCell>
+                      <p className="font-medium">{product.name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{product.slug}</p>
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">{product.supplier_name}</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {product.currency === "INR" ? "₹" : `${product.currency} `}
+                      {product.price.toLocaleString("en-IN")}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground hidden sm:table-cell">
+                      {product.moq} {product.unit}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {product.rating.toFixed(1)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1.5">
+                        {product.verified && <Badge variant="success">Verified</Badge>}
+                        {product.is_trending && <Badge variant="info">Trending</Badge>}
+                        {!product.verified && !product.is_trending && (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </DataTable>
           </TableLoadingOverlay>
         )}
         <div className="px-6 pb-4">

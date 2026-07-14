@@ -17,7 +17,7 @@ export function SuperAdminDashboard() {
     <div className="space-y-4 md:space-y-5">
       <div>
         <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Super Admin Dashboard</h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="mt-1 text-[13px] text-muted-foreground">
           Monitor platform health and manage system operations.
         </p>
       </div>

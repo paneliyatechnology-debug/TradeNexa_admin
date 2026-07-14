@@ -18,7 +18,7 @@ export function AdminDashboard() {
     <div className="space-y-4 md:space-y-5">
       <div>
         <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Admin Dashboard</h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="mt-1 text-[13px] text-muted-foreground">
           Manage marketplace operations and monitor activity.
         </p>
       </div>

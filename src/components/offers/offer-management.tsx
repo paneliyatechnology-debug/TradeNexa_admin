@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { OfferForm } from "@/components/offers/offer-form";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
@@ -8,10 +8,21 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  DataTable,
+  SortableTableHead,
+  TableBody,
+  TableCell,
+  TableHeadCell,
+  TableHeadRow,
+  TableLoadingOverlay,
+  TableRow,
+} from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { IconButton } from "@/components/ui/icon-button";
 import { Modal } from "@/components/ui/modal";
 import { Pagination } from "@/components/ui/pagination";
+import { SearchField } from "@/components/ui/search-field";
 import { DashboardSkeleton, Skeleton } from "@/components/ui/skeleton";
 import { Loader } from "@/components/ui/loader";
 import { offersService } from "@/services/offers.service";
@@ -30,7 +41,7 @@ import { resolveMediaDisplayUrl } from "@/utils/media-url";
 import { cn } from "@/utils/cn";
 import { getColumnDefaultOrder, nextColumnSortState } from "@/utils/column-sort";
 import type { OfferFormData } from "@/utils/validators";
-import { ArrowDown, ArrowUp, ArrowUpDown, ImageIcon, Pencil, Plus, Search, Tag, Trash2 } from "lucide-react";
+import { ImageIcon, Pencil, Plus, Tag, Trash2 } from "lucide-react";
 
 interface OfferManagementProps {
   title: string;
@@ -54,50 +65,6 @@ function getDefaultSortOrder(column: OfferSortBy): SortOrder {
   return getColumnDefaultOrder(column, SORTABLE_COLUMNS);
 }
 
-function SortableColumnHeader({
-  label,
-  column,
-  sortBy,
-  sortOrder,
-  onSort,
-}: {
-  label: string;
-  column: OfferSortBy;
-  sortBy: OfferSortBy | null;
-  sortOrder: SortOrder;
-  onSort: (column: OfferSortBy) => void;
-}) {
-  const isActive = sortBy === column;
-
-  return (
-    <th className="px-4 py-3 text-left font-medium sm:px-6">
-      <button
-        type="button"
-        onClick={() => onSort(column)}
-        className={cn(
-          "inline-flex items-center gap-1.5 rounded-md transition-colors",
-          "hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-          isActive ? "text-primary" : "text-foreground"
-        )}
-        aria-sort={
-          isActive ? (sortOrder === "asc" ? "ascending" : "descending") : "none"
-        }
-      >
-        <span>{label}</span>
-        {isActive ? (
-          sortOrder === "asc" ? (
-            <ArrowUp className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          ) : (
-            <ArrowDown className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          )
-        ) : (
-          <ArrowUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" aria-hidden />
-        )}
-      </button>
-    </th>
-  );
-}
-
 function OfferTableHeader({
   sortBy,
   sortOrder,
@@ -108,41 +75,20 @@ function OfferTableHeader({
   onSort: (column: OfferSortBy) => void;
 }) {
   return (
-    <thead>
-      <tr className="border-b border-border">
-        <th className="px-4 py-3 text-left font-medium sm:px-6">Banner</th>
-        {SORTABLE_COLUMNS.map((item) => (
-          <SortableColumnHeader
-            key={item.column}
-            label={item.label}
-            column={item.column}
-            sortBy={sortBy}
-            sortOrder={sortOrder}
-            onSort={onSort}
-          />
-        ))}
-        <th className="px-4 py-3 text-left font-medium sm:px-6">Actions</th>
-      </tr>
-    </thead>
-  );
-}
-
-function TableLoadingOverlay({
-  loading,
-  children,
-}: {
-  loading: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <div className="relative">
-      {children}
-      {loading ? (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70 backdrop-blur-[1px]">
-          <Loader size="lg" />
-        </div>
-      ) : null}
-    </div>
+    <TableHeadRow>
+      <TableHeadCell>Banner</TableHeadCell>
+      {SORTABLE_COLUMNS.map((item) => (
+        <SortableTableHead
+          key={item.column}
+          label={item.label}
+          column={item.column}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSort={onSort}
+        />
+      ))}
+      <TableHeadCell>Actions</TableHeadCell>
+    </TableHeadRow>
   );
 }
 
@@ -189,19 +135,19 @@ function OfferTableRow({
     : false;
 
   return (
-    <tr className="group">
-      <td className="px-4 py-3 sm:px-6">
+    <TableRow>
+      <TableCell>
         <OfferBannerThumb banner={offer.banner} label={displayTitle} />
-      </td>
-      <td className="px-4 py-3 sm:px-6">
+      </TableCell>
+      <TableCell>
         <p className="max-w-[14rem] font-medium leading-snug sm:max-w-xs">{displayTitle}</p>
-      </td>
-      <td className="px-4 py-3 sm:px-6">
+      </TableCell>
+      <TableCell>
         <Badge className="border-0 bg-primary/10 text-primary hover:bg-primary/10">
           {offer.discount}% off
         </Badge>
-      </td>
-      <td className="px-4 py-3 sm:px-6">
+      </TableCell>
+      <TableCell>
         {expiryLabel ? (
           <div className="min-w-[7.5rem]">
             <p
@@ -223,8 +169,8 @@ function OfferTableRow({
         ) : (
           <span className="text-muted-foreground">—</span>
         )}
-      </td>
-      <td className="px-4 py-3 sm:px-6">
+      </TableCell>
+      <TableCell>
         <div className="flex items-center gap-1.5">
           <IconButton label="Edit offer" tone="view" onClick={onEdit}>
             <Pencil className="h-3.5 w-3.5" />
@@ -233,36 +179,36 @@ function OfferTableRow({
             <Trash2 className="h-3.5 w-3.5" />
           </IconButton>
         </div>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }
 
-function TableRowsSkeleton({ rows = 5 }: { rows?: number }) {
+function OfferTableRowsSkeleton({ rows = 5 }: { rows?: number }) {
   return (
     <>
       {Array.from({ length: rows }).map((_, index) => (
-        <tr key={index}>
-          <td className="px-4 py-3 sm:px-6">
+        <TableRow key={index}>
+          <TableCell>
             <Skeleton className="h-14 w-20 rounded-lg" />
-          </td>
-          <td className="px-4 py-3 sm:px-6">
+          </TableCell>
+          <TableCell>
             <Skeleton className="h-4 w-36" />
-          </td>
-          <td className="px-4 py-3 sm:px-6">
+          </TableCell>
+          <TableCell>
             <Skeleton className="h-6 w-16 rounded-full" />
-          </td>
-          <td className="px-4 py-3 sm:px-6">
+          </TableCell>
+          <TableCell>
             <Skeleton className="h-4 w-24" />
             <Skeleton className="mt-2 h-3 w-12" />
-          </td>
-          <td className="px-4 py-3 sm:px-6">
+          </TableCell>
+          <TableCell>
             <div className="flex gap-2">
               <Skeleton className="h-9 w-9 rounded-md" />
               <Skeleton className="h-9 w-9 rounded-md" />
             </div>
-          </td>
-        </tr>
+          </TableCell>
+        </TableRow>
       ))}
     </>
   );
@@ -432,8 +378,8 @@ export function OfferManagement({ title, basePath }: OfferManagementProps) {
       </div>
 
       <div>
-        <h1 className="text-xl font-bold tracking-tight sm:mt-2 md:text-2xl">{title}</h1>
-        <p className="mt-1 text-sm text-muted-foreground md:text-base">
+        <h1 className="text-xl font-semibold tracking-tight sm:mt-2 md:text-2xl">{title}</h1>
+        <p className="mt-1 text-[13px] text-muted-foreground">
           Create discount offers to boost sales and attract customers.
         </p>
       </div>
@@ -456,16 +402,11 @@ export function OfferManagement({ title, basePath }: OfferManagementProps) {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative w-full sm:max-w-md">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="search"
-                value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="Search offers..."
-                className="h-9 w-full rounded-md border border-border bg-card pl-9 pr-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40"
-              />
-            </div>
+            <SearchField
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder="Search offers..."
+            />
 
             <label className="flex h-9 w-full cursor-pointer items-center gap-2 rounded-md border border-border bg-card px-3 text-sm sm:w-auto">
               <input
@@ -484,17 +425,19 @@ export function OfferManagement({ title, basePath }: OfferManagementProps) {
 
         <CardContent className="p-0">
           {loading && offers.results.length === 0 ? (
-            <div className="overflow-x-auto px-4 py-4 sm:px-0">
-              <table className="ledger-table w-full min-w-[44rem] text-sm">
-                <OfferTableHeader
-                  sortBy={sortBy}
-                  sortOrder={sortOrder}
-                  onSort={handleColumnSort}
-                />
-                <tbody className="divide-y divide-border">
-                  <TableRowsSkeleton />
-                </tbody>
-              </table>
+            <div className="px-4 py-4 sm:px-0">
+              <DataTable minWidthClassName="min-w-[44rem]">
+                <thead>
+                  <OfferTableHeader
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onSort={handleColumnSort}
+                  />
+                </thead>
+                <TableBody>
+                  <OfferTableRowsSkeleton />
+                </TableBody>
+              </DataTable>
             </div>
           ) : offers.results.length === 0 ? (
             <EmptyState
@@ -517,25 +460,25 @@ export function OfferManagement({ title, basePath }: OfferManagementProps) {
           ) : (
             <>
               <TableLoadingOverlay loading={loading}>
-                <div className="overflow-x-auto">
-                  <table className="ledger-table w-full min-w-[44rem] text-sm">
+                <DataTable minWidthClassName="min-w-[44rem]">
+                  <thead>
                     <OfferTableHeader
                       sortBy={sortBy}
                       sortOrder={sortOrder}
                       onSort={handleColumnSort}
                     />
-                    <tbody className="divide-y divide-border">
-                      {offers.results.map((offer) => (
-                        <OfferTableRow
-                          key={offer.id}
-                          offer={offer}
-                          onEdit={() => void openEdit(offer)}
-                          onDelete={() => setDeleteOffer(offer)}
-                        />
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                  </thead>
+                  <TableBody>
+                    {offers.results.map((offer) => (
+                      <OfferTableRow
+                        key={offer.id}
+                        offer={offer}
+                        onEdit={() => void openEdit(offer)}
+                        onDelete={() => setDeleteOffer(offer)}
+                      />
+                    ))}
+                  </TableBody>
+                </DataTable>
               </TableLoadingOverlay>
 
               <div className="border-t border-border px-4 py-3 sm:px-6 sm:py-4">

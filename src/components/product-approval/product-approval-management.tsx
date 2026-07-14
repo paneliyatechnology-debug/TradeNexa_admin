@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   ProductDecisionDialog,
@@ -10,11 +10,24 @@ import { Badge } from "@/components/ui/badge";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DataTable,
+  SortableTableHead,
+  TableBody,
+  TableCell,
+  TableHeadCell,
+  TableHeadRow,
+  TableLoadingOverlay,
+  TableRow,
+  TableRowsSkeleton,
+} from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FilterChips } from "@/components/ui/filter-chips";
 import { IconButton } from "@/components/ui/icon-button";
 import { Loader } from "@/components/ui/loader";
 import { Modal } from "@/components/ui/modal";
 import { Pagination } from "@/components/ui/pagination";
+import { SearchField } from "@/components/ui/search-field";
 import { DashboardSkeleton, Skeleton } from "@/components/ui/skeleton";
 import { productsService } from "@/services/products.service";
 import type { PaginatedData, SortOrder } from "@/types/api";
@@ -28,18 +41,13 @@ import type {
 } from "@/types/product";
 import { PRODUCT_APPROVAL_STATUS_OPTIONS } from "@/types/product";
 import { resolveMediaDisplayUrl } from "@/utils/media-url";
-import { cn } from "@/utils/cn";
 import { getColumnDefaultOrder, nextColumnSortState } from "@/utils/column-sort";
 import {
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
   CheckCircle2,
   Eye,
   ImageIcon,
   MessageSquareWarning,
   PackageCheck,
-  Search,
   XCircle,
 } from "lucide-react";
 
@@ -132,72 +140,6 @@ function reviewActionLabel(action: ProductReviewHistoryEntry["action"]): string 
   }
 }
 
-function SortableColumnHeader({
-  label,
-  column,
-  sortBy,
-  sortOrder,
-  onSort,
-}: {
-  label: string;
-  column: AdminReviewSortBy;
-  sortBy: AdminReviewSortBy | null;
-  sortOrder: SortOrder;
-  onSort: (column: AdminReviewSortBy) => void;
-}) {
-  const isActive = sortBy === column;
-
-  return (
-    <th className="px-4 py-3 text-left font-medium sm:px-6">
-      <button
-        type="button"
-        onClick={() => onSort(column)}
-        className={cn(
-          "inline-flex items-center gap-1.5 rounded-md transition-colors",
-          "hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-          isActive ? "text-primary" : "text-foreground"
-        )}
-        aria-sort={
-          isActive ? (sortOrder === "asc" ? "ascending" : "descending") : "none"
-        }
-      >
-        <span>{label}</span>
-        {isActive ? (
-          sortOrder === "asc" ? (
-            <ArrowUp className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          ) : (
-            <ArrowDown className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          )
-        ) : (
-          <ArrowUpDown
-            className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50"
-            aria-hidden
-          />
-        )}
-      </button>
-    </th>
-  );
-}
-
-function TableLoadingOverlay({
-  loading,
-  children,
-}: {
-  loading: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <div className="relative">
-      {children}
-      {loading ? (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70 backdrop-blur-[1px]">
-          <Loader size="lg" />
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 function ProductThumb({
   thumbnail,
   name,
@@ -223,37 +165,6 @@ function ProductThumb({
         className="h-full w-full object-cover"
         referrerPolicy="no-referrer"
       />
-    </div>
-  );
-}
-
-function StatusFilterChips({
-  value,
-  onChange,
-}: {
-  value: ProductApprovalStatus | "all";
-  onChange: (value: ProductApprovalStatus | "all") => void;
-}) {
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {PRODUCT_APPROVAL_STATUS_OPTIONS.map((option) => {
-        const isActive = value === option.value;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            onClick={() => onChange(option.value)}
-            className={cn(
-              "rounded-md border px-3 py-1.5 text-xs font-medium transition-colors sm:text-[13px]",
-              isActive
-                ? "border-primary/30 bg-primary text-primary-foreground"
-                : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground"
-            )}
-          >
-            {option.label}
-          </button>
-        );
-      })}
     </div>
   );
 }
@@ -517,10 +428,10 @@ export function ProductApprovalManagement({
       </div>
 
       <div>
-        <h1 className="text-xl font-bold tracking-tight sm:mt-2 md:text-2xl">
+        <h1 className="text-xl font-semibold tracking-tight sm:mt-2 md:text-2xl">
           {title}
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground md:text-base">
+        <p className="mt-1 text-[13px] text-muted-foreground">
           Review seller listings, approve them for buyers, or request changes.
         </p>
       </div>
@@ -586,50 +497,41 @@ export function ProductApprovalManagement({
           </div>
 
           <div className="flex flex-col gap-3">
-            <div className="relative w-full sm:max-w-md">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="search"
-                value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="Search product, seller, category, brand…"
-                className="h-9 w-full rounded-md border border-border bg-card pl-9 pr-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40"
-              />
-            </div>
-            <StatusFilterChips
+            <SearchField
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder="Search product, seller, category, brand…"
+            />
+            <FilterChips
+              options={PRODUCT_APPROVAL_STATUS_OPTIONS}
               value={statusFilter}
               onChange={(value) => {
                 setStatusFilter(value);
                 setPage(1);
                 setSelectedIds([]);
               }}
+              aria-label="Approval status"
             />
           </div>
         </CardHeader>
 
         <CardContent className="p-0">
           {loading && products.results.length === 0 ? (
-            <div className="overflow-x-auto px-4 py-4 sm:px-0">
-              <table className="ledger-table w-full min-w-[64rem] text-sm">
+            <div className="px-4 py-4 sm:px-0">
+              <DataTable minWidthClassName="min-w-[64rem]">
                 <thead>
-                  <tr className="border-b border-border">
+                  <TableHeadRow>
                     {Array.from({ length: 8 }).map((_, index) => (
-                      <th key={index} className="px-4 py-3 sm:px-6">
+                      <TableHeadCell key={index}>
                         <Skeleton className="h-4 w-16" />
-                      </th>
+                      </TableHeadCell>
                     ))}
-                  </tr>
+                  </TableHeadRow>
                 </thead>
-                <tbody className="divide-y divide-border">
-                  {Array.from({ length: 5 }).map((_, index) => (
-                    <tr key={index}>
-                      <td className="px-4 py-3.5 sm:px-6" colSpan={8}>
-                        <Skeleton className="h-10 w-full" />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                <TableBody>
+                  <TableRowsSkeleton rows={5} columns={8} />
+                </TableBody>
+              </DataTable>
             </div>
           ) : products.results.length === 0 ? (
             <EmptyState
@@ -646,173 +548,160 @@ export function ProductApprovalManagement({
           ) : (
             <>
               <TableLoadingOverlay loading={loading}>
-                <div className="overflow-x-auto">
-                  <table className="ledger-table w-full min-w-[64rem] text-sm">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="w-12 px-4 py-3 sm:px-6">
-                          <input
-                            type="checkbox"
-                            checked={allSelectableSelected}
-                            disabled={selectableOnPage.length === 0}
-                            onChange={toggleSelectAll}
-                            aria-label="Select all in-review products on this page"
-                            className="h-4 w-4 rounded border-border"
-                          />
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:px-6">
-                          Product
-                        </th>
-                        <SortableColumnHeader
-                          label="Seller"
-                          column="seller_name"
-                          sortBy={sortBy}
-                          sortOrder={sortOrder}
-                          onSort={handleColumnSort}
+                <DataTable minWidthClassName="min-w-[64rem]">
+                  <thead>
+                    <TableHeadRow>
+                      <TableHeadCell className="w-12">
+                        <input
+                          type="checkbox"
+                          checked={allSelectableSelected}
+                          disabled={selectableOnPage.length === 0}
+                          onChange={toggleSelectAll}
+                          aria-label="Select all in-review products on this page"
+                          className="h-4 w-4 rounded border-border"
                         />
-                        <SortableColumnHeader
-                          label="Price"
-                          column="price"
-                          sortBy={sortBy}
-                          sortOrder={sortOrder}
-                          onSort={handleColumnSort}
-                        />
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:px-6">
-                          Status
-                        </th>
-                        <SortableColumnHeader
-                          label="Submitted"
-                          column="submitted_at"
-                          sortBy={sortBy}
-                          sortOrder={sortOrder}
-                          onSort={handleColumnSort}
-                        />
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:px-6">
-                          Remarks
-                        </th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:px-6">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {products.results.map((item) => {
-                        const inReview = item.approval_status === "in_review";
-                        const seller =
-                          item.seller_name?.trim() ||
-                          item.supplier_name?.trim() ||
-                          "—";
+                      </TableHeadCell>
+                      <TableHeadCell>Product</TableHeadCell>
+                      <SortableTableHead
+                        label="Seller"
+                        column="seller_name"
+                        sortBy={sortBy}
+                        sortOrder={sortOrder}
+                        onSort={handleColumnSort}
+                      />
+                      <SortableTableHead
+                        label="Price"
+                        column="price"
+                        sortBy={sortBy}
+                        sortOrder={sortOrder}
+                        onSort={handleColumnSort}
+                      />
+                      <TableHeadCell>Status</TableHeadCell>
+                      <SortableTableHead
+                        label="Submitted"
+                        column="submitted_at"
+                        sortBy={sortBy}
+                        sortOrder={sortOrder}
+                        onSort={handleColumnSort}
+                      />
+                      <TableHeadCell>Remarks</TableHeadCell>
+                      <TableHeadCell align="right">Actions</TableHeadCell>
+                    </TableHeadRow>
+                  </thead>
+                  <TableBody>
+                    {products.results.map((item) => {
+                      const inReview = item.approval_status === "in_review";
+                      const seller =
+                        item.seller_name?.trim() ||
+                        item.supplier_name?.trim() ||
+                        "—";
 
-                        return (
-                          <tr
-                            key={item.id}
-                            className="group"
-                          >
-                            <td className="px-4 py-3.5 sm:px-6">
-                              <input
-                                type="checkbox"
-                                checked={selectedIds.includes(item.id)}
-                                disabled={!inReview}
-                                onChange={() => toggleSelect(item.id, inReview)}
-                                aria-label={`Select ${item.name}`}
-                                className="h-4 w-4 rounded border-border disabled:opacity-40"
+                      return (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.includes(item.id)}
+                              disabled={!inReview}
+                              onChange={() => toggleSelect(item.id, inReview)}
+                              aria-label={`Select ${item.name}`}
+                              className="h-4 w-4 rounded border-border disabled:opacity-40"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <ProductThumb
+                                thumbnail={item.thumbnail}
+                                name={item.name}
                               />
-                            </td>
-                            <td className="px-4 py-3.5 sm:px-6">
-                              <div className="flex items-center gap-3">
-                                <ProductThumb
-                                  thumbnail={item.thumbnail}
-                                  name={item.name}
-                                />
-                                <div className="min-w-0">
-                                  <p className="max-w-[14rem] truncate font-semibold leading-snug sm:max-w-xs">
-                                    {item.name}
-                                  </p>
-                                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                                    v{item.review_version}
-                                    {item.category_name
-                                      ? ` · ${item.category_name}`
-                                      : ""}
-                                  </p>
-                                </div>
+                              <div className="min-w-0">
+                                <p className="max-w-[14rem] truncate font-semibold leading-snug sm:max-w-xs">
+                                  {item.name}
+                                </p>
+                                <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                                  v{item.review_version}
+                                  {item.category_name
+                                    ? ` · ${item.category_name}`
+                                    : ""}
+                                </p>
                               </div>
-                            </td>
-                            <td className="px-4 py-3.5 text-muted-foreground sm:px-6">
-                              <p className="max-w-[10rem] truncate sm:max-w-[12rem]">
-                                {seller}
-                              </p>
-                            </td>
-                            <td className="px-4 py-3.5 sm:px-6">
-                              {formatMoney(item.price, item.currency)}
-                              <span className="mt-0.5 block text-xs text-muted-foreground">
-                                MOQ {item.moq} {item.unit}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3.5 sm:px-6">
-                              <Badge
-                                variant={approvalBadgeVariant(
-                                  item.approval_status
-                                )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            <p className="max-w-[10rem] truncate sm:max-w-[12rem]">
+                              {seller}
+                            </p>
+                          </TableCell>
+                          <TableCell>
+                            {formatMoney(item.price, item.currency)}
+                            <span className="mt-0.5 block text-xs text-muted-foreground">
+                              MOQ {item.moq} {item.unit}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={approvalBadgeVariant(
+                                item.approval_status
+                              )}
+                            >
+                              {approvalLabel(item.approval_status)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {formatDateTime(item.submitted_at)}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            <p className="max-w-[12rem] truncate sm:max-w-[16rem]">
+                              {item.latest_review_remarks?.trim() || "—"}
+                            </p>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center justify-end gap-1.5">
+                              <IconButton
+                                label="View details"
+                                tone="view"
+                                onClick={() => void openDetail(item)}
                               >
-                                {approvalLabel(item.approval_status)}
-                              </Badge>
-                            </td>
-                            <td className="px-4 py-3.5 text-muted-foreground sm:px-6">
-                              {formatDateTime(item.submitted_at)}
-                            </td>
-                            <td className="px-4 py-3.5 text-muted-foreground sm:px-6">
-                              <p className="max-w-[12rem] truncate sm:max-w-[16rem]">
-                                {item.latest_review_remarks?.trim() || "—"}
-                              </p>
-                            </td>
-                            <td className="px-4 py-3.5 sm:px-6">
-                              <div className="flex items-center justify-end gap-1.5">
-                                <IconButton
-                                  label="View details"
-                                  tone="view"
-                                  onClick={() => void openDetail(item)}
-                                >
-                                  <Eye className="h-3.5 w-3.5" />
-                                </IconButton>
-                                {inReview ? (
-                                  <>
-                                    <IconButton
-                                      label="Approve"
-                                      tone="success"
-                                      onClick={() =>
-                                        openDecision("approve", [item])
-                                      }
-                                    >
-                                      <CheckCircle2 className="h-3.5 w-3.5" />
-                                    </IconButton>
-                                    <IconButton
-                                      label="Request revision"
-                                      tone="warning"
-                                      onClick={() =>
-                                        openDecision("request_revision", [item])
-                                      }
-                                    >
-                                      <MessageSquareWarning className="h-3.5 w-3.5" />
-                                    </IconButton>
-                                    <IconButton
-                                      label="Reject"
-                                      tone="danger"
-                                      onClick={() =>
-                                        openDecision("reject", [item])
-                                      }
-                                    >
-                                      <XCircle className="h-3.5 w-3.5" />
-                                    </IconButton>
-                                  </>
-                                ) : null}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                                <Eye className="h-3.5 w-3.5" />
+                              </IconButton>
+                              {inReview ? (
+                                <>
+                                  <IconButton
+                                    label="Approve"
+                                    tone="success"
+                                    onClick={() =>
+                                      openDecision("approve", [item])
+                                    }
+                                  >
+                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                  </IconButton>
+                                  <IconButton
+                                    label="Request revision"
+                                    tone="warning"
+                                    onClick={() =>
+                                      openDecision("request_revision", [item])
+                                    }
+                                  >
+                                    <MessageSquareWarning className="h-3.5 w-3.5" />
+                                  </IconButton>
+                                  <IconButton
+                                    label="Reject"
+                                    tone="danger"
+                                    onClick={() =>
+                                      openDecision("reject", [item])
+                                    }
+                                  >
+                                    <XCircle className="h-3.5 w-3.5" />
+                                  </IconButton>
+                                </>
+                              ) : null}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </DataTable>
               </TableLoadingOverlay>
 
               <div className="border-t border-border px-4 py-3 sm:px-6 sm:py-4">
@@ -892,7 +781,7 @@ export function ProductApprovalManagement({
             )}
 
             {detail.latest_review_remarks ? (
-              <div className="rounded-xl border border-border bg-muted/20 px-3 py-2.5">
+              <div className="rounded-md border border-border bg-secondary px-3 py-2.5">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Latest remarks
                 </p>
@@ -913,7 +802,7 @@ export function ProductApprovalManagement({
                   {detailHistory.map((entry) => (
                     <li
                       key={entry.id}
-                      className="rounded-xl border border-border px-3 py-2.5"
+                      className="rounded-md border border-border px-3 py-2.5"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <p className="text-sm font-medium">

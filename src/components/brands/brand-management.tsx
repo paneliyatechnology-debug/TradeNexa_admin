@@ -1,16 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { BrandForm } from "@/components/brands/brand-form";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  DataTable,
+  SortableTableHead,
+  TableBody,
+  TableCell,
+  TableHeadCell,
+  TableHeadRow,
+  TableLoadingOverlay,
+  TableRow,
+} from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
+import { BoolFilterGroup, type BoolFilterValue } from "@/components/ui/filter-chips";
 import { IconButton } from "@/components/ui/icon-button";
 import { Modal } from "@/components/ui/modal";
 import { Pagination } from "@/components/ui/pagination";
+import { SearchField } from "@/components/ui/search-field";
 import { DashboardSkeleton, Skeleton } from "@/components/ui/skeleton";
 import { Loader } from "@/components/ui/loader";
 import { brandsService } from "@/services/brands.service";
@@ -18,17 +30,7 @@ import type { PaginatedData, SortOrder } from "@/types/api";
 import type { Brand, BrandSortBy, CreateBrandInput, UpdateBrandInput } from "@/types/brand";
 import type { BrandFormData } from "@/utils/validators";
 import { resolveMediaDisplayUrl } from "@/utils/media-url";
-import {
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
-  Award,
-  ImageIcon,
-  Pencil,
-  Plus,
-  Search,
-  Trash2,
-} from "lucide-react";
+import { Award, ImageIcon, Pencil, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { getColumnDefaultOrder, nextColumnSortState } from "@/utils/column-sort";
 
@@ -49,7 +51,7 @@ interface BrandManagementProps {
   basePath: string;
 }
 
-type BoolFilter = "all" | "yes" | "no";
+type BoolFilter = BoolFilterValue;
 
 const defaultPagination = {
   total: 0,
@@ -63,50 +65,6 @@ function toBoolParam(filter: BoolFilter): boolean | undefined {
   return filter === "yes";
 }
 
-function SortableColumnHeader({
-  label,
-  column,
-  sortBy,
-  sortOrder,
-  onSort,
-}: {
-  label: string;
-  column: BrandSortBy;
-  sortBy: BrandSortBy | null;
-  sortOrder: SortOrder;
-  onSort: (column: BrandSortBy) => void;
-}) {
-  const isActive = sortBy === column;
-
-  return (
-    <th className="px-4 py-3 text-left font-medium sm:px-6">
-      <button
-        type="button"
-        onClick={() => onSort(column)}
-        className={cn(
-          "inline-flex items-center gap-1.5 rounded-md transition-colors",
-          "hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-          isActive ? "text-primary" : "text-foreground"
-        )}
-        aria-sort={
-          isActive ? (sortOrder === "asc" ? "ascending" : "descending") : "none"
-        }
-      >
-        <span>{label}</span>
-        {isActive ? (
-          sortOrder === "asc" ? (
-            <ArrowUp className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          ) : (
-            <ArrowDown className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          )
-        ) : (
-          <ArrowUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" aria-hidden />
-        )}
-      </button>
-    </th>
-  );
-}
-
 function BrandTableHeader({
   sortBy,
   sortOrder,
@@ -116,59 +74,29 @@ function BrandTableHeader({
   sortOrder: SortOrder;
   onSort: (column: BrandSortBy) => void;
 }) {
-  const centerHeaderClass =
-    "px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:px-4";
-
   return (
-    <thead>
-      <tr className="border-b border-border">
-        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:px-6">
-          Logo
-        </th>
-        <SortableColumnHeader
-          label="Name"
-          column="name"
-          sortBy={sortBy}
-          sortOrder={sortOrder}
-          onSort={onSort}
-        />
-        <SortableColumnHeader
-          label="Country"
-          column="country"
-          sortBy={sortBy}
-          sortOrder={sortOrder}
-          onSort={onSort}
-        />
-        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:px-6">
-          Website
-        </th>
-        <th className={centerHeaderClass}>Active</th>
-        <th className={centerHeaderClass}>Popular</th>
-        <th className={centerHeaderClass}>Featured</th>
-        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:px-6">
-          Actions
-        </th>
-      </tr>
-    </thead>
-  );
-}
-
-function TableLoadingOverlay({
-  loading,
-  children,
-}: {
-  loading: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <div className="relative">
-      {children}
-      {loading ? (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70 backdrop-blur-[1px]">
-          <Loader size="lg" />
-        </div>
-      ) : null}
-    </div>
+    <TableHeadRow>
+      <TableHeadCell>Logo</TableHeadCell>
+      <SortableTableHead
+        label="Name"
+        column="name"
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSort={onSort}
+      />
+      <SortableTableHead
+        label="Country"
+        column="country"
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSort={onSort}
+      />
+      <TableHeadCell>Website</TableHeadCell>
+      <TableHeadCell align="center">Active</TableHeadCell>
+      <TableHeadCell align="center">Popular</TableHeadCell>
+      <TableHeadCell align="center">Featured</TableHeadCell>
+      <TableHeadCell align="right">Actions</TableHeadCell>
+    </TableHeadRow>
   );
 }
 
@@ -234,19 +162,19 @@ function BrandTableRow({
   const website = brand.website?.trim();
 
   return (
-    <tr className="group">
-      <td className="px-4 py-3.5 sm:px-6">
+    <TableRow>
+      <TableCell>
         <BrandLogo logo={brand.logo} name={brand.name} />
-      </td>
-      <td className="px-4 py-3.5 sm:px-6">
+      </TableCell>
+      <TableCell>
         <p className="max-w-[12rem] truncate font-semibold leading-snug sm:max-w-xs">
           {brand.name}
         </p>
-      </td>
-      <td className="px-4 py-3.5 text-muted-foreground sm:px-6">
+      </TableCell>
+      <TableCell className="text-muted-foreground">
         <p className="max-w-[10rem] truncate sm:max-w-xs">{country || "—"}</p>
-      </td>
-      <td className="px-4 py-3.5 sm:px-6">
+      </TableCell>
+      <TableCell>
         {website ? (
           <a
             href={website}
@@ -259,17 +187,17 @@ function BrandTableRow({
         ) : (
           <span className="text-muted-foreground">—</span>
         )}
-      </td>
-      <td className="px-3 py-3.5 text-center sm:px-4">
+      </TableCell>
+      <TableCell align="center">
         <YesNoValue value={brand.is_active} />
-      </td>
-      <td className="px-3 py-3.5 text-center sm:px-4">
+      </TableCell>
+      <TableCell align="center">
         <YesNoValue value={brand.is_popular} />
-      </td>
-      <td className="px-3 py-3.5 text-center sm:px-4">
+      </TableCell>
+      <TableCell align="center">
         <YesNoValue value={brand.is_featured} />
-      </td>
-      <td className="px-4 py-3.5 sm:px-6">
+      </TableCell>
+      <TableCell>
         <div className="flex items-center justify-end gap-1.5">
           <IconButton label="Edit brand" tone="view" onClick={onEdit}>
             <Pencil className="h-3.5 w-3.5" />
@@ -278,100 +206,46 @@ function BrandTableRow({
             <Trash2 className="h-3.5 w-3.5" />
           </IconButton>
         </div>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }
 
-function TableRowsSkeleton({ rows = 5 }: { rows?: number }) {
+function BrandTableRowsSkeleton({ rows = 5 }: { rows?: number }) {
   return (
     <>
       {Array.from({ length: rows }).map((_, index) => (
-        <tr key={index} className="border-b border-border">
-          <td className="px-4 py-3.5 sm:px-6">
+        <TableRow key={index}>
+          <TableCell>
             <Skeleton className="h-10 w-10 rounded-md" />
-          </td>
-          <td className="px-4 py-3.5 sm:px-6">
+          </TableCell>
+          <TableCell>
             <Skeleton className="h-4 w-32" />
-          </td>
-          <td className="px-4 py-3.5 sm:px-6">
+          </TableCell>
+          <TableCell>
             <Skeleton className="h-4 w-20" />
-          </td>
-          <td className="px-4 py-3.5 sm:px-6">
+          </TableCell>
+          <TableCell>
             <Skeleton className="h-4 w-28" />
-          </td>
-          <td className="px-3 py-3.5 text-center sm:px-4">
+          </TableCell>
+          <TableCell align="center">
             <Skeleton className="mx-auto h-4 w-8" />
-          </td>
-          <td className="px-3 py-3.5 text-center sm:px-4">
+          </TableCell>
+          <TableCell align="center">
             <Skeleton className="mx-auto h-4 w-8" />
-          </td>
-          <td className="px-3 py-3.5 text-center sm:px-4">
+          </TableCell>
+          <TableCell align="center">
             <Skeleton className="mx-auto h-4 w-8" />
-          </td>
-          <td className="px-4 py-3.5 sm:px-6">
+          </TableCell>
+          <TableCell>
             <div className="flex justify-end gap-1">
               <Skeleton className="h-9 w-9 rounded-md" />
               <Skeleton className="h-9 w-9 rounded-md" />
             </div>
-          </td>
-        </tr>
+          </TableCell>
+        </TableRow>
       ))}
     </>
-  );
-}
-
-function BoolFilter({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: BoolFilter;
-  onChange: (value: BoolFilter) => void;
-}) {
-  const options: { value: BoolFilter; label: string }[] = [
-    { value: "all", label: "All" },
-    { value: "yes", label: "Yes" },
-    { value: "no", label: "No" },
-  ];
-
-  const isFiltered = value !== "all";
-
-  return (
-    <div
-      className={cn(
-        "rounded-md border p-3 transition-colors",
-        isFiltered
-          ? "border-primary/30 bg-accent"
-          : "border-border bg-muted/40"
-      )}
-    >
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground">
-        {label}
-      </p>
-      <div className="grid grid-cols-3 gap-1 rounded-lg border border-border bg-background/60 p-1">
-        {options.map((option) => {
-          const isActive = value === option.value;
-
-          return (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => onChange(option.value)}
-              className={cn(
-                "rounded-md px-2 py-1.5 text-xs font-medium transition-all sm:text-sm",
-                isActive
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-              )}
-            >
-              {option.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
   );
 }
 
@@ -573,8 +447,8 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
         />
       </div>
       <div>
-        <h1 className="text-xl font-bold tracking-tight sm:mt-2 md:text-2xl">{title}</h1>
-        <p className="mt-1 text-sm text-muted-foreground md:text-base">
+        <h1 className="text-xl font-semibold tracking-tight sm:mt-2 md:text-2xl">{title}</h1>
+        <p className="mt-1 text-[13px] text-muted-foreground">
           Add and organize brands with logos to create trusted marketplace listings.
         </p>
       </div>
@@ -597,29 +471,24 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
           </div>
 
           <div className="flex flex-col gap-3">
-            <div className="relative w-full sm:max-w-md">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="search"
-                value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="Search brands..."
-                className="h-9 w-full rounded-md border border-border bg-card pl-9 pr-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40"
-              />
-            </div>
+            <SearchField
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder="Search brands..."
+            />
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <BoolFilter
+              <BoolFilterGroup
                 label="Active"
                 value={activeFilter}
                 onChange={(value) => handleBoolFilterChange(setActiveFilter, value)}
               />
-              <BoolFilter
+              <BoolFilterGroup
                 label="Popular"
                 value={popularFilter}
                 onChange={(value) => handleBoolFilterChange(setPopularFilter, value)}
               />
-              <BoolFilter
+              <BoolFilterGroup
                 label="Featured"
                 value={featuredFilter}
                 onChange={(value) => handleBoolFilterChange(setFeaturedFilter, value)}
@@ -630,17 +499,19 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
 
         <CardContent className="p-0">
           {loading && brands.results.length === 0 ? (
-            <div className="overflow-x-auto px-4 py-4 sm:px-0">
-              <table className="ledger-table w-full min-w-[56rem] text-sm">
-                <BrandTableHeader
-                  sortBy={sortBy}
-                  sortOrder={sortOrder}
-                  onSort={handleColumnSort}
-                />
-                <tbody className="divide-y divide-border">
-                  <TableRowsSkeleton />
-                </tbody>
-              </table>
+            <div className="px-4 py-4 sm:px-0">
+              <DataTable minWidthClassName="min-w-[56rem]">
+                <thead>
+                  <BrandTableHeader
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onSort={handleColumnSort}
+                  />
+                </thead>
+                <TableBody>
+                  <BrandTableRowsSkeleton />
+                </TableBody>
+              </DataTable>
             </div>
           ) : brands.results.length === 0 ? (
             <EmptyState
@@ -663,25 +534,25 @@ export function BrandManagement({ title, basePath }: BrandManagementProps) {
           ) : (
             <>
               <TableLoadingOverlay loading={loading}>
-                <div className="overflow-x-auto">
-                  <table className="ledger-table w-full min-w-[56rem] text-sm">
+                <DataTable minWidthClassName="min-w-[56rem]">
+                  <thead>
                     <BrandTableHeader
-                  sortBy={sortBy}
-                  sortOrder={sortOrder}
-                  onSort={handleColumnSort}
-                />
-                    <tbody className="divide-y divide-border">
-                      {brands.results.map((brand) => (
-                        <BrandTableRow
-                          key={brand.id}
-                          brand={brand}
-                          onEdit={() => void openEdit(brand)}
-                          onDelete={() => setDeleteBrand(brand)}
-                        />
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      sortBy={sortBy}
+                      sortOrder={sortOrder}
+                      onSort={handleColumnSort}
+                    />
+                  </thead>
+                  <TableBody>
+                    {brands.results.map((brand) => (
+                      <BrandTableRow
+                        key={brand.id}
+                        brand={brand}
+                        onEdit={() => void openEdit(brand)}
+                        onDelete={() => setDeleteBrand(brand)}
+                      />
+                    ))}
+                  </TableBody>
+                </DataTable>
               </TableLoadingOverlay>
 
               <div className="border-t border-border px-4 py-3 sm:px-6 sm:py-4">

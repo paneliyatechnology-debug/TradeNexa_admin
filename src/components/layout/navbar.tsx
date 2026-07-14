@@ -23,7 +23,7 @@ export function Navbar({ title }: NavbarProps) {
       <Button
         variant="ghost"
         size="icon"
-        className="lg:hidden"
+        className="h-9 w-9 lg:hidden"
         onClick={toggle}
         aria-label="Open menu"
       >
@@ -36,7 +36,7 @@ export function Navbar({ title }: NavbarProps) {
         </h1>
       )}
 
-      <div className="flex items-center gap-2 ml-auto">
+      <div className="ml-auto flex items-center gap-2">
         <RoleSwitcher />
 
         {role && (
@@ -49,7 +49,7 @@ export function Navbar({ title }: NavbarProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="relative text-muted-foreground hover:text-foreground"
+          className="relative h-9 w-9 text-muted-foreground hover:text-foreground"
           aria-label="Notifications"
         >
           <Bell className="h-4 w-4" />

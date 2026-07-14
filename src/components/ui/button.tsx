@@ -10,13 +10,14 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variants = {
   primary:
-    "bg-primary text-primary-foreground hover:bg-primary/90 shadow-none",
+    "bg-primary text-primary-foreground hover:bg-primary/90",
   secondary:
-    "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border",
+    "bg-secondary text-secondary-foreground hover:bg-muted border border-border",
   ghost: "hover:bg-accent hover:text-accent-foreground",
-  danger: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+  danger:
+    "bg-destructive text-destructive-foreground hover:bg-destructive/90",
   outline:
-    "border border-border bg-card hover:bg-accent hover:text-accent-foreground",
+    "border border-border bg-card hover:bg-secondary hover:text-foreground",
 };
 
 const sizes = {
@@ -53,7 +54,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || loading}
         {...props}
       >
-        {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+        {loading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
         {children}
       </button>
     );

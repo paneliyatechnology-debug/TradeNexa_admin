@@ -178,7 +178,7 @@ export function CreateCategoryForm({
           </div>
         </div>
 
-        <label className="flex items-center gap-2.5 rounded-md border border-border bg-muted/20 px-4 py-3.5 text-sm cursor-pointer">
+        <label className="flex cursor-pointer items-center gap-2.5 rounded-md border border-border bg-secondary px-3 py-3 text-sm">
           <Controller
             name="is_active"
             control={control}

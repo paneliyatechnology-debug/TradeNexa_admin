@@ -6,6 +6,7 @@ import {
   ProductDecisionDialog,
   type ProductDecisionAction,
 } from "@/components/product-approval/product-decision-dialog";
+import { ProductDetailPanel } from "@/components/product-approval/product-detail-panel";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
@@ -79,15 +80,20 @@ function getDefaultSortOrder(column: AdminReviewSortBy): SortOrder {
   return getColumnDefaultOrder(column, SORTABLE_COLUMNS);
 }
 
-function formatMoney(price: number, currency: string): string {
+function formatMoney(
+  price: number | null | undefined,
+  currency: string
+): string {
+  const amount = typeof price === "number" ? price : Number(price);
+  if (!Number.isFinite(amount)) return "—";
   try {
     return new Intl.NumberFormat(undefined, {
       style: "currency",
       currency: currency || "INR",
       maximumFractionDigits: 2,
-    }).format(price);
+    }).format(amount);
   } catch {
-    return `${currency || ""} ${price}`.trim();
+    return `${currency || ""} ${amount}`.trim();
   }
 }
 
@@ -121,23 +127,6 @@ function approvalLabel(status: ProductApprovalStatus): string {
     PRODUCT_APPROVAL_STATUS_OPTIONS.find((option) => option.value === status)
       ?.label ?? status
   );
-}
-
-function reviewActionLabel(action: ProductReviewHistoryEntry["action"]): string {
-  switch (action) {
-    case "submitted":
-      return "Submitted";
-    case "resubmitted":
-      return "Resubmitted";
-    case "approved":
-      return "Approved";
-    case "revision_required":
-      return "Revision required";
-    case "rejected":
-      return "Rejected";
-    default:
-      return action;
-  }
 }
 
 function ProductThumb({
@@ -737,130 +726,46 @@ export function ProductApprovalManagement({
         title={detailProduct?.name ?? "Product details"}
         description="Listing details and review history"
         icon={<PackageCheck className="h-5 w-5" />}
-        className="w-full max-w-2xl"
+        className="w-full max-w-4xl max-h-[min(92vh,52rem)]"
+        footer={
+          canModerateDetail && detailProduct && detail && !detailLoading ? (
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => openDecision("reject", [detailProduct])}
+              >
+                <XCircle className="h-4 w-4" />
+                Reject
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  openDecision("request_revision", [detailProduct])
+                }
+              >
+                <MessageSquareWarning className="h-4 w-4" />
+                Request revision
+              </Button>
+              <Button
+                type="button"
+                onClick={() => openDecision("approve", [detailProduct])}
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Approve
+              </Button>
+            </div>
+          ) : undefined
+        }
       >
         {detailLoading ? (
-          <div className="flex justify-center px-5 py-10 sm:px-6">
+          <div className="flex justify-center px-4 py-10 sm:px-5">
             <Loader size="lg" />
           </div>
         ) : detail ? (
-          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-6">
-            <div className="flex gap-4">
-              <ProductThumb thumbnail={detail.thumbnail} name={detail.name} />
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={approvalBadgeVariant(detail.approval_status)}>
-                    {approvalLabel(detail.approval_status)}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">
-                    Review v{detail.review_version}
-                  </span>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {formatMoney(detail.price, detail.currency)} · MOQ{" "}
-                  {detail.moq} {detail.unit}
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Seller:{" "}
-                  {detail.seller_name?.trim() ||
-                    detail.supplier_name?.trim() ||
-                    "—"}
-                </p>
-              </div>
-            </div>
-
-            {(detail.short_description || detail.description) && (
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Description
-                </p>
-                <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
-                  {detail.short_description || detail.description}
-                </p>
-              </div>
-            )}
-
-            {detail.latest_review_remarks ? (
-              <div className="rounded-md border border-border bg-secondary px-3 py-2.5">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Latest remarks
-                </p>
-                <p className="mt-1 text-sm">{detail.latest_review_remarks}</p>
-              </div>
-            ) : null}
-
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Review history
-              </p>
-              {detailHistory.length === 0 ? (
-                <p className="mt-2 text-sm text-muted-foreground">
-                  No review events yet.
-                </p>
-              ) : (
-                <ul className="mt-2 space-y-2">
-                  {detailHistory.map((entry) => (
-                    <li
-                      key={entry.id}
-                      className="rounded-md border border-border px-3 py-2.5"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-sm font-medium">
-                          {reviewActionLabel(entry.action)}
-                          {entry.from_status && entry.to_status
-                            ? ` · ${approvalLabel(entry.from_status)} → ${approvalLabel(entry.to_status)}`
-                            : ""}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDateTime(entry.created_at)}
-                        </p>
-                      </div>
-                      {entry.remarks ? (
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {entry.remarks}
-                        </p>
-                      ) : null}
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        v{entry.review_version}
-                        {entry.actor_role ? ` · ${entry.actor_role}` : ""}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            {canModerateDetail && detailProduct ? (
-              <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  onClick={() => openDecision("reject", [detailProduct])}
-                >
-                  <XCircle className="h-4 w-4" />
-                  Reject
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() =>
-                    openDecision("request_revision", [detailProduct])
-                  }
-                >
-                  <MessageSquareWarning className="h-4 w-4" />
-                  Request revision
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => openDecision("approve", [detailProduct])}
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                  Approve
-                </Button>
-              </div>
-            ) : null}
-          </div>
+          <ProductDetailPanel detail={detail} history={detailHistory} />
         ) : null}
       </Modal>
     </div>

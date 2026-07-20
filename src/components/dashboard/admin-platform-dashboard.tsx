@@ -126,7 +126,7 @@ export function AdminPlatformDashboard({
     );
   }
 
-  const { summary, products, rfqs, inquiries, quotations, chat, charts } = data;
+  const { summary, products, rfqs, quotations, chat, charts } = data;
 
   const kpiCards = [
     {
@@ -225,9 +225,6 @@ export function AdminPlatformDashboard({
               <p className="text-[13px] text-muted-foreground">
                 {formatCount(summary.products_moderation_queue)} listings need
                 attention
-                {inquiries.pending > 0
-                  ? ` · ${formatCount(inquiries.pending)} inquiries pending`
-                  : ""}
               </p>
             </div>
             <Link

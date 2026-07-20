@@ -73,6 +73,9 @@ export const API_ENDPOINTS = {
     tickets: "/support/tickets",
     ticket: (id: string) => `/support/tickets/${id}`,
   },
+  dashboard: {
+    admin: "/dashboard/admin",
+  },
   reports: {
     overview: "/reports/overview",
   },

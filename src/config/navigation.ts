@@ -49,7 +49,7 @@ export const LOGOUT_ITEM = {
 };
 
 const SUPER_ADMIN_NAV: RoleNavItem[] = [
-  { label: "Dashboard", slug: "dashboard", icon: LayoutDashboard, comingSoon: true },
+  { label: "Dashboard", slug: "dashboard", icon: LayoutDashboard, comingSoon: false },
   { label: "Buyer Management", slug: "buyer-management", icon: ShoppingBag, comingSoon: true },
   { label: "Seller Management", slug: "seller-management", icon: Store, comingSoon: true },
   { label: "Seller Verification", slug: "seller-verification", icon: ShieldCheck, comingSoon: true },
@@ -74,7 +74,7 @@ const SUPER_ADMIN_NAV: RoleNavItem[] = [
 ];
 
 const ADMIN_NAV: RoleNavItem[] = [
-  { label: "Dashboard", slug: "dashboard", icon: LayoutDashboard, comingSoon: true },
+  { label: "Dashboard", slug: "dashboard", icon: LayoutDashboard, comingSoon: false },
   { label: "Buyer Management", slug: "buyer-management", icon: ShoppingBag, comingSoon: true },
   { label: "Seller Management", slug: "seller-management", icon: Store, comingSoon: true },
   { label: "Seller Verification", slug: "seller-verification", icon: ShieldCheck, comingSoon: true },
@@ -91,7 +91,7 @@ const ADMIN_NAV: RoleNavItem[] = [
 ];
 
 const SUPPORT_ADMIN_NAV: RoleNavItem[] = [
-  { label: "Dashboard", slug: "dashboard", icon: LayoutDashboard, comingSoon: true },
+  { label: "Dashboard", slug: "dashboard", icon: LayoutDashboard, comingSoon: false },
   { label: "Support Tickets", slug: "support-tickets", icon: Ticket, comingSoon: true },
   { label: "Buyer Complaints", slug: "buyer-complaints", icon: MessageSquareWarning, comingSoon: true },
   { label: "Seller Complaints", slug: "seller-complaints", icon: AlertTriangle, comingSoon: true },

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PlaceholderPage } from "@/components/common/placeholder-page";
+import { AdminPlatformDashboard } from "@/components/dashboard/admin-platform-dashboard";
 import { ROUTES } from "@/config/routes";
 
 export const metadata: Metadata = {
@@ -7,5 +7,10 @@ export const metadata: Metadata = {
 };
 
 export default function AdminDashboardPage() {
-  return <PlaceholderPage title="Dashboard" basePath={ROUTES.admin.base} />;
+  return (
+    <AdminPlatformDashboard
+      title="Admin Dashboard"
+      basePath={ROUTES.admin.base}
+    />
+  );
 }

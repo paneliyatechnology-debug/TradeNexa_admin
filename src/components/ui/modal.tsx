@@ -15,6 +15,8 @@ interface ModalProps {
   children?: ReactNode;
   footer?: ReactNode;
   className?: string;
+  /** Scroll + pad the body even without a footer (children that don't self-pad). */
+  scrollBody?: boolean;
 }
 
 export function Modal({
@@ -26,6 +28,7 @@ export function Modal({
   children,
   footer,
   className,
+  scrollBody = false,
 }: ModalProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -96,7 +99,7 @@ export function Modal({
           <div
             className={cn(
               "flex min-h-0 flex-1 flex-col overflow-hidden",
-              footer ? "overflow-y-auto px-4 py-4 sm:px-5" : ""
+              footer || scrollBody ? "overflow-y-auto px-4 py-4 sm:px-5" : ""
             )}
           >
             {children}

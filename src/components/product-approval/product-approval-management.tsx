@@ -727,6 +727,7 @@ export function ProductApprovalManagement({
         description="Listing details and review history"
         icon={<PackageCheck className="h-5 w-5" />}
         className="w-full max-w-4xl max-h-[min(92vh,52rem)]"
+        scrollBody
         footer={
           canModerateDetail && detailProduct && detail && !detailLoading ? (
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -761,7 +762,7 @@ export function ProductApprovalManagement({
         }
       >
         {detailLoading ? (
-          <div className="flex justify-center px-4 py-10 sm:px-5">
+          <div className="flex justify-center py-10">
             <Loader size="lg" />
           </div>
         ) : detail ? (

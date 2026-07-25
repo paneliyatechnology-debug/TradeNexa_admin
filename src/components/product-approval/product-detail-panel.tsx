@@ -10,7 +10,7 @@ import { PRODUCT_APPROVAL_STATUS_OPTIONS } from "@/types/product";
 import { cn } from "@/utils/cn";
 import { resolveMediaDisplayUrl } from "@/utils/media-url";
 import { ImageIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 const EMPTY = "—";
 
@@ -117,6 +117,12 @@ function yesNo(value: boolean | null | undefined): string | null {
   return value ? "Yes" : "No";
 }
 
+function humanizeKey(key: string): string {
+  return key
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 function SectionTitle({
   children,
   count,
@@ -160,39 +166,98 @@ function FieldRow({
   );
 }
 
-function DetailThumb({
-  thumbnail,
-  name,
+function MediaThumb({
+  src,
+  alt,
+  selected,
+  onClick,
+  size = "lg",
 }: {
-  thumbnail: string | null;
-  name: string;
+  src: string | null;
+  alt: string;
+  selected?: boolean;
+  onClick?: () => void;
+  size?: "lg" | "sm";
 }) {
-  const src = resolveMediaDisplayUrl(thumbnail);
+  const resolved = resolveMediaDisplayUrl(src);
+  const box =
+    size === "lg"
+      ? "h-24 w-24 sm:h-28 sm:w-28"
+      : "h-14 w-14";
 
-  if (!src) {
+  if (!resolved) {
     return (
-      <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border border-dashed border-border bg-muted text-muted-foreground">
-        <ImageIcon className="h-6 w-6" aria-hidden />
+      <div
+        className={cn(
+          "flex shrink-0 items-center justify-center rounded-lg border border-dashed border-border bg-muted text-muted-foreground",
+          box
+        )}
+      >
+        <ImageIcon className={size === "lg" ? "h-6 w-6" : "h-4 w-4"} />
       </div>
     );
   }
 
-  return (
-    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-border bg-muted/40">
+  const image = (
+    <div
+      className={cn(
+        "shrink-0 overflow-hidden rounded-lg border bg-muted/40",
+        box,
+        selected ? "border-primary ring-2 ring-primary/25" : "border-border"
+      )}
+    >
       <img
-        src={src}
-        alt={name}
+        src={resolved}
+        alt={alt}
         className="h-full w-full object-cover"
         referrerPolicy="no-referrer"
       />
     </div>
   );
+
+  if (!onClick) return image;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      {image}
+    </button>
+  );
 }
 
 function specificationEntries(
-  specs: Record<string, unknown> | null | undefined
+  specs: Record<string, unknown> | Array<unknown> | null | undefined
 ): { key: string; value: string }[] {
-  if (!specs || typeof specs !== "object") return [];
+  if (!specs) return [];
+
+  if (Array.isArray(specs)) {
+    return specs
+      .map((item, index) => {
+        if (item == null) return null;
+        if (typeof item === "string" || typeof item === "number") {
+          const value = String(item).trim();
+          return value ? { key: `Spec ${index + 1}`, value } : null;
+        }
+        if (typeof item === "object") {
+          const row = item as Record<string, unknown>;
+          const key =
+            text(String(row.key ?? row.name ?? row.label ?? "")) ??
+            `Spec ${index + 1}`;
+          const value = text(
+            String(row.value ?? row.detail ?? row.description ?? "")
+          );
+          return value ? { key, value } : null;
+        }
+        return null;
+      })
+      .filter((entry): entry is { key: string; value: string } => entry != null);
+  }
+
+  if (typeof specs !== "object") return [];
+
   return Object.entries(specs)
     .map(([key, raw]) => {
       if (raw == null) return null;
@@ -206,18 +271,14 @@ function specificationEntries(
       }
       try {
         const value = JSON.stringify(raw);
-        return value && value !== "{}" && value !== "[]" ? { key, value } : null;
+        return value && value !== "{}" && value !== "[]"
+          ? { key, value }
+          : null;
       } catch {
         return null;
       }
     })
     .filter((entry): entry is { key: string; value: string } => entry != null);
-}
-
-function humanizeKey(key: string): string {
-  return key
-    .replace(/[_-]+/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 interface ProductDetailPanelProps {
@@ -229,12 +290,35 @@ export function ProductDetailPanel({
   detail,
   history,
 }: ProductDetailPanelProps) {
-  const seller = text(detail.seller_name) ?? text(detail.supplier_name);
+  const galleryUrls = (detail.gallery ?? [])
+    .map((item) => item.url)
+    .filter(Boolean);
+  const imageOptions = [
+    ...(detail.thumbnail ? [detail.thumbnail] : []),
+    ...galleryUrls.filter((url) => url !== detail.thumbnail),
+  ];
+
+  const [activeImage, setActiveImage] = useState<string | null>(
+    imageOptions[0] ?? null
+  );
+
+  const seller =
+    text(detail.seller?.company_name) ??
+    text(detail.seller_name) ??
+    text(detail.supplier_name);
+
   const location =
-    [text(detail.city), text(detail.state)].filter(Boolean).join(", ") || null;
+    [
+      text(detail.seller?.city) ?? text(detail.city),
+      text(detail.seller?.state) ?? text(detail.state),
+      text(detail.seller?.country),
+    ]
+      .filter(Boolean)
+      .join(", ") || null;
+
   const price = formatMoney(detail.price, detail.currency);
   const moq =
-    detail.moq != null && Number.isFinite(Number(detail.moq))
+    detail.moq != null && Number.isFinite(Number(detail.moq)) && detail.moq > 0
       ? `${detail.moq}${text(detail.unit) ? ` ${detail.unit}` : ""}`
       : null;
   const stock =
@@ -242,7 +326,9 @@ export function ProductDetailPanel({
       detail.stock_quantity != null && Number.isFinite(detail.stock_quantity)
         ? String(detail.stock_quantity)
         : null,
-      text(detail.stock_status),
+      text(detail.stock_status)
+        ? humanizeKey(String(detail.stock_status))
+        : null,
     ]
       .filter(Boolean)
       .join(" · ") || null;
@@ -267,14 +353,35 @@ export function ProductDetailPanel({
     { label: "Category", value: text(detail.category_name) },
     { label: "Subcategory", value: text(detail.subcategory_name) },
     { label: "Brand", value: text(detail.brand_name) },
+    { label: "Brand country", value: text(detail.brand_country) },
     { label: "Location", value: location },
+    {
+      label: "Address",
+      value: [
+        text(detail.seller?.address_line_1),
+        text(detail.seller?.pincode),
+      ]
+        .filter(Boolean)
+        .join(", ") || null,
+    },
     { label: "Country of origin", value: text(detail.country_of_origin) },
     { label: "Material", value: text(detail.material) },
-    { label: "Condition", value: text(detail.product_condition) },
+    {
+      label: "Condition",
+      value: text(detail.product_condition)
+        ? humanizeKey(String(detail.product_condition))
+        : null,
+    },
     { label: "Warranty", value: text(detail.warranty) },
     { label: "HSN code", value: text(detail.hsn_code) },
     { label: "Product ID", value: text(detail.id) },
   ];
+
+  const sellerFields = [
+    { label: "Company", value: seller },
+    { label: "Email", value: text(detail.seller?.email) },
+    { label: "Phone", value: text(detail.seller?.phone) },
+  ].filter((field) => field.value != null);
 
   const flagFields = [
     { label: "Active", value: yesNo(detail.is_active) },
@@ -291,10 +398,13 @@ export function ProductDetailPanel({
 
   return (
     <div className="space-y-5">
-      {/* Summary */}
       <div className="rounded-lg border border-border bg-secondary/40 p-3 sm:p-4">
         <div className="flex gap-3 sm:gap-4">
-          <DetailThumb thumbnail={detail.thumbnail} name={detail.name} />
+          <MediaThumb
+            src={activeImage}
+            alt={detail.name}
+            size="lg"
+          />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant={approvalBadgeVariant(detail.approval_status)}>
@@ -321,6 +431,21 @@ export function ProductDetailPanel({
           </div>
         </div>
 
+        {imageOptions.length > 1 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {imageOptions.map((url) => (
+              <MediaThumb
+                key={url}
+                src={url}
+                alt={detail.name}
+                size="sm"
+                selected={activeImage === url}
+                onClick={() => setActiveImage(url)}
+              />
+            ))}
+          </div>
+        ) : null}
+
         <dl className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {headlineStats.map((stat) => (
             <div
@@ -344,7 +469,6 @@ export function ProductDetailPanel({
       </div>
 
       <div className="grid gap-5 lg:grid-cols-5">
-        {/* Left: listing data */}
         <div className="space-y-5 lg:col-span-3">
           <section>
             <SectionTitle>Listing details</SectionTitle>
@@ -358,6 +482,38 @@ export function ProductDetailPanel({
               ))}
             </dl>
           </section>
+
+          {sellerFields.length > 0 ? (
+            <section>
+              <SectionTitle>Seller</SectionTitle>
+              <div className="mb-2 flex items-center gap-3 rounded-md border border-border px-3 py-2.5">
+                <MediaThumb
+                  src={detail.seller?.company_logo ?? null}
+                  alt={seller ?? "Seller"}
+                  size="sm"
+                />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {seller ?? EMPTY}
+                  </p>
+                  {location ? (
+                    <p className="truncate text-[12px] text-muted-foreground">
+                      {location}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+              <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {sellerFields.map((field) => (
+                  <FieldRow
+                    key={field.label}
+                    label={field.label}
+                    value={field.value}
+                  />
+                ))}
+              </dl>
+            </section>
+          ) : null}
 
           {flagFields.length > 0 ? (
             <section>
@@ -422,7 +578,6 @@ export function ProductDetailPanel({
           ) : null}
         </div>
 
-        {/* Right: moderation trail */}
         <div className="space-y-5 lg:col-span-2">
           {text(detail.latest_review_remarks) ? (
             <section>

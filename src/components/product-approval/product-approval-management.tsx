@@ -766,7 +766,11 @@ export function ProductApprovalManagement({
             <Loader size="lg" />
           </div>
         ) : detail ? (
-          <ProductDetailPanel detail={detail} history={detailHistory} />
+          <ProductDetailPanel
+            key={detail.id}
+            detail={detail}
+            history={detailHistory}
+          />
         ) : null}
       </Modal>
     </div>

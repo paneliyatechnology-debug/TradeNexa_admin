@@ -127,7 +127,26 @@ export interface ProductReviewItem extends Product, ProductApprovalFields {
   updated_at?: string;
 }
 
-/** Full product detail (admin can view any approval status). */
+export interface ProductGalleryImage {
+  id: number;
+  url: string;
+  is_primary: boolean;
+}
+
+export interface ProductSellerInfo {
+  id: number | null;
+  company_name: string | null;
+  company_logo: string | null;
+  email: string | null;
+  phone: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  address_line_1: string | null;
+  pincode: string | null;
+}
+
+/** Full product detail (admin can view any approval status). Flat view model. */
 export interface ProductDetail extends ProductReviewItem {
   short_description?: string | null;
   description?: string | null;
@@ -136,7 +155,7 @@ export interface ProductDetail extends ProductReviewItem {
   material?: string | null;
   country_of_origin?: string | null;
   product_condition?: string | null;
-  specifications?: Record<string, unknown> | null;
+  specifications?: Record<string, unknown> | Array<unknown> | null;
   search_tags?: string[] | null;
   hsn_code?: string | null;
   gst_percentage?: number | null;
@@ -146,6 +165,130 @@ export interface ProductDetail extends ProductReviewItem {
   stock_quantity?: number | null;
   stock_status?: string | null;
   deleted_at?: string | null;
+  gallery?: ProductGalleryImage[];
+  brand_logo?: string | null;
+  brand_website?: string | null;
+  brand_country?: string | null;
+  seller?: ProductSellerInfo | null;
+}
+
+/** Raw nested payload from GET /products/:id */
+export interface ProductDetailApiResponse {
+  id: number;
+  slug?: string | null;
+  category_id?: number | null;
+  subcategory_id?: number | null;
+  basic_details?: {
+    name?: string | null;
+    short_description?: string | null;
+    description?: string | null;
+    brand?: {
+      id?: number;
+      name?: string | null;
+      slug?: string | null;
+      website?: string | null;
+      country?: string | null;
+      logo?: string | null;
+    } | null;
+    category?: { id?: number; name?: string | null } | null;
+    subcategory?: { id?: number; name?: string | null } | null;
+    country_of_origin?: string | null;
+    material?: string | null;
+    product_condition?: string | null;
+  } | null;
+  pricing?: {
+    price?: number | null;
+    currency?: string | null;
+    minimum_order_quantity?: number | null;
+    unit?: string | null;
+    gst_percentage?: number | null;
+    hsn_code?: string | null;
+    show_price?: boolean | null;
+  } | null;
+  inventory?: {
+    stock_status?: string | null;
+    stock_quantity?: number | null;
+  } | null;
+  images?: {
+    thumbnail?: string | null;
+    gallery?: Array<{
+      id?: number;
+      url?: string | null;
+      is_primary?: boolean;
+    }> | null;
+  } | null;
+  seller?: {
+    id?: number | null;
+    user_id?: number | null;
+    company?: {
+      name?: string | null;
+      logo?: string | null;
+    } | null;
+    contact?: {
+      phone?: string | null;
+      email?: string | null;
+    } | null;
+    address?: {
+      address_line_1?: string | null;
+      pincode?: string | null;
+      country?: string | null;
+      state?: string | null;
+      city?: string | null;
+    } | null;
+  } | null;
+  marketplace?: {
+    is_trending?: boolean | null;
+    accept_inquiry?: boolean | null;
+    is_active?: boolean | null;
+  } | null;
+  approval?: {
+    status?: ProductApprovalStatus | string | null;
+    review_version?: number | null;
+    submitted_at?: string | null;
+    resubmitted_at?: string | null;
+    reviewed_at?: string | null;
+    reviewed_by?: number | null;
+    latest_review_remarks?: string | null;
+  } | null;
+  warranty?: string | null;
+  search_tags?: string[] | null;
+  specifications?: Record<string, unknown> | Array<unknown> | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  // Flat legacy fallback fields
+  name?: string | null;
+  thumbnail?: string | null;
+  price?: number | null;
+  currency?: string | null;
+  moq?: number | null;
+  unit?: string | null;
+  supplier_name?: string | null;
+  seller_name?: string | null;
+  approval_status?: ProductApprovalStatus | string | null;
+  review_version?: number | null;
+  submitted_at?: string | null;
+  resubmitted_at?: string | null;
+  reviewed_at?: string | null;
+  reviewed_by?: number | null;
+  latest_review_remarks?: string | null;
+  is_active?: boolean | null;
+  is_trending?: boolean | null;
+  category_name?: string | null;
+  brand_name?: string | null;
+  subcategory_name?: string | null;
+  short_description?: string | null;
+  description?: string | null;
+  material?: string | null;
+  country_of_origin?: string | null;
+  product_condition?: string | null;
+  hsn_code?: string | null;
+  gst_percentage?: number | null;
+  show_price?: boolean | null;
+  accept_inquiry?: boolean | null;
+  stock_quantity?: number | null;
+  stock_status?: string | null;
+  city?: string | null;
+  state?: string | null;
 }
 
 export interface AdminReviewListParams {

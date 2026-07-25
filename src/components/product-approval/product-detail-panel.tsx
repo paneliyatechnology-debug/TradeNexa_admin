@@ -459,43 +459,52 @@ export function ProductDetailPanel({
                 No review events yet.
               </p>
             ) : (
-              <ol className="relative space-y-3 border-l border-border pl-4">
-                {history.map((entry) => (
-                  <li key={entry.id} className="relative">
-                    <span
-                      className={cn(
-                        "absolute -left-[1.3rem] top-1.5 h-2 w-2 rounded-full ring-2 ring-card",
-                        timelineDotClass(entry.action)
-                      )}
-                      aria-hidden
-                    />
-                    <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
-                      <p className="text-[13px] font-semibold text-foreground">
-                        {reviewActionLabel(entry.action)}
+              <ol className="relative space-y-3">
+                {history.map((entry, index) => {
+                  const isLast = index === history.length - 1;
+                  return (
+                    <li key={entry.id} className="relative pl-4">
+                      {!isLast ? (
+                        <span
+                          className="absolute left-[3px] top-3 bottom-[-0.75rem] w-px bg-border"
+                          aria-hidden
+                        />
+                      ) : null}
+                      <span
+                        className={cn(
+                          "absolute left-0 top-1.5 z-[1] h-2 w-2 rounded-full ring-2 ring-card",
+                          timelineDotClass(entry.action)
+                        )}
+                        aria-hidden
+                      />
+                      <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+                        <p className="text-[13px] font-semibold text-foreground">
+                          {reviewActionLabel(entry.action)}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {formatDateTime(entry.created_at) ?? EMPTY}
+                        </p>
+                      </div>
+                      {entry.from_status && entry.to_status ? (
+                        <p className="mt-0.5 text-[12px] text-muted-foreground">
+                          {approvalLabel(entry.from_status)} →{" "}
+                          {approvalLabel(entry.to_status)}
+                        </p>
+                      ) : null}
+                      {text(entry.remarks) ? (
+                        <p className="mt-1 rounded-md bg-secondary/60 px-2.5 py-1.5 text-[12px] leading-relaxed text-foreground">
+                          {entry.remarks}
+                        </p>
+                      ) : null}
+                      <p className="mt-1 text-[11px] text-muted-foreground/80">
+                        v{entry.review_version}
+                        {actorLabel(entry.actor_role)
+                          ? ` · ${actorLabel(entry.actor_role)}`
+                          : ""}
                       </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {formatDateTime(entry.created_at) ?? EMPTY}
-                      </p>
-                    </div>
-                    {entry.from_status && entry.to_status ? (
-                      <p className="mt-0.5 text-[12px] text-muted-foreground">
-                        {approvalLabel(entry.from_status)} →{" "}
-                        {approvalLabel(entry.to_status)}
-                      </p>
-                    ) : null}
-                    {text(entry.remarks) ? (
-                      <p className="mt-1 rounded-md bg-secondary/60 px-2.5 py-1.5 text-[12px] leading-relaxed text-foreground">
-                        {entry.remarks}
-                      </p>
-                    ) : null}
-                    <p className="mt-1 text-[11px] text-muted-foreground/80">
-                      v{entry.review_version}
-                      {actorLabel(entry.actor_role)
-                        ? ` · ${actorLabel(entry.actor_role)}`
-                        : ""}
-                    </p>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ol>
             )}
           </section>

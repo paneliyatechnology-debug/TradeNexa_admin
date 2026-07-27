@@ -1,36 +1,130 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TradeNexa Admin
 
-## Getting Started
+Admin panel for the **TradeNexa** B2B marketplace. Role-based dashboards for Super Admin, Admin, and Support to manage products, categories, brands, banners, offers, and platform ops.
 
-First, run the development server:
+**Live:** [https://tradehub-admin.vercel.app](https://tradehub-admin.vercel.app)
+
+## Stack
+
+- **Next.js** 16 (App Router) + **React** 19
+- **TypeScript**
+- **Tailwind CSS** v4
+- **React Hook Form** + **Zod**
+- **Recharts** (dashboard charts)
+- **Sonner** (toasts)
+- Backend API: Railway (`/api/v1`)
+
+## Roles
+
+| Role | Base path | Notes |
+|------|-----------|--------|
+| Super Admin | `/super-admin` | Full ops + banners |
+| Admin | `/admin` | Core marketplace management |
+| Support | `/support` | Support-focused modules |
+
+## Implemented modules
+
+- Dashboard (platform KPIs + charts via `GET /dashboard/admin`)
+- Product Approval (queue, detail modal, approve / revision / reject)
+- Categories & subcategories
+- Brands
+- Offers
+- Banners (Super Admin)
+
+Other nav items may show as placeholders until built.
+
+## Getting started
+
+### Prerequisites
+
+- Node.js 20+
+- npm
+- Access to the TradeNexa backend
+
+### Setup
+
+```bash
+git clone git@github.com:paneliyatechnology-debug/TradeNexa_admin.git
+cd TradeNexa_admin
+npm install
+cp .env.example .env.local
+```
+
+Edit `.env.local`:
+
+```env
+NEXT_PUBLIC_BACKEND_URL=https://tradenexabackend-production.up.railway.app
+NEXT_PUBLIC_ENABLE_ROLE_SWITCHER=true
+```
+
+| Variable | Purpose |
+|----------|---------|
+| `NEXT_PUBLIC_BACKEND_URL` | Backend root (API + media) |
+| `NEXT_PUBLIC_ENABLE_ROLE_SWITCHER` | Role preview switcher (testing); relaxes some route checks when `true` |
+
+### Run locally
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) and sign in at `/login`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Development server |
+| `npm run build` | Production build |
+| `npm run start` | Serve production build |
+| `npm run lint` | ESLint |
 
-## Learn More
+## Project structure
 
-To learn more about Next.js, take a look at the following resources:
+```text
+src/
+  app/                 # Routes (login, role dashboards, modules)
+  components/          # UI + feature screens
+  config/              # API endpoints, navigation, routes
+  services/            # Backend API clients
+  types/               # Shared TypeScript types
+  hooks/               # Auth, sidebar, etc.
+  utils/               # API client, media URL helpers
+  styles/              # Global tokens (Trade Ledger theme)
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Git remotes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Prefer **SSH** (recommended if your GitHub SSH key is set up):
 
-## Deploy on Vercel
+```bash
+git remote set-url origin git@github.com:parthil1/TradeNexa_admin.git
+git remote set-url upstream git@github.com:paneliyatechnology-debug/TradeNexa_admin.git
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Push:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+# Local branch is master
+git push origin master
+git push upstream master
+```
+
+> There is no local `main` branch. Use `master`, or `git push upstream master:main` if the remote expects `main`.
+
+## Deploy (Vercel)
+
+Project is configured for Vercel. Ensure these env vars are set in the Vercel project:
+
+- `NEXT_PUBLIC_BACKEND_URL`
+- `NEXT_PUBLIC_ENABLE_ROLE_SWITCHER` (optional)
+
+```bash
+npx vercel --prod
+```
+
+Or connect the GitHub repo in the [Vercel dashboard](https://vercel.com) for automatic deploys.
+
+## License
+
+Private — TradeNexa / Paneliya Technology.

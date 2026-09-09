@@ -19,6 +19,14 @@ function toProxyPath(mediaUrl: string): string | null {
   try {
     const parsed = new URL(mediaUrl);
 
+    if (parsed.pathname.startsWith("/api/media/")) {
+      return parsed.pathname;
+    }
+
+    if (parsed.pathname.startsWith("/api/uploads/")) {
+      return parsed.pathname;
+    }
+
     if (parsed.pathname.startsWith("/media/")) {
       const mediaPath = parsed.pathname.replace(/^\/media\/?/, "");
       return `/api/media/${mediaPath}`;
@@ -31,6 +39,10 @@ function toProxyPath(mediaUrl: string): string | null {
 
     return null;
   } catch {
+    if (mediaUrl.startsWith("/api/media/") || mediaUrl.startsWith("/api/uploads/")) {
+      return mediaUrl;
+    }
+
     if (mediaUrl.startsWith("/media/")) {
       return `/api${mediaUrl}`;
     }

@@ -1,18 +1,75 @@
-const DEFAULT_BACKEND_URL = "https://tradenexabackend-production.up.railway.app";
+/**
+ * ==============================================================================
+ * TradeNexa Admin - API & Server URL Configuration
+ * ==============================================================================
+ * 
+ * Aap yahan se easily Local (Testing) aur Live (Production) URL switch kar sakte hain.
+ * 
+ * 1. DIRECT TOGGLE:
+ *    Neeche diye gaye `DEFAULT_ENV` ko 'local' ya 'live' set karein.
+ * 
+ * 2. YA .env FILE SE:
+ *    .env.local me `NEXT_PUBLIC_ENV=local` ya `NEXT_PUBLIC_ENV=live` likhein.
+ */
+
+export const URL_CONFIG = {
+  local: {
+    origin: "http://localhost:3000",
+    apiUrl: "http://localhost:3000/api/v1",
+  },
+  live: {
+    origin: "https://tradenexabackend-dev.up.railway.app",
+    apiUrl: "https://tradenexabackend-dev.up.railway.app/api/v1",
+  },
+} as const;
+
+export type AppEnvironment = keyof typeof URL_CONFIG;
+
+// ==============================================================================
+// ⚙️ MANUAL TOGGLE (Yahan change karke toggle kar sakte hain):
+// Set to 'local' for testing, or 'live' for production
+// ==============================================================================
+const DEFAULT_ENV: AppEnvironment = "live"; // 👈 Change to 'live' for production
 
 function normalizeBaseUrl(url: string): string {
-  return url.replace(/\/+$/, "");
+  return url.trim().replace(/\/+$/, "");
 }
 
-/** Railway backend root, e.g. https://tradenexabackend-production.up.railway.app */
+// Check environment variables first (allows override via .env or hosting provider)
+const envOverride = process.env.NEXT_PUBLIC_ENV?.toLowerCase()?.trim() as AppEnvironment | undefined;
+export const CURRENT_ENV: AppEnvironment =
+  envOverride && URL_CONFIG[envOverride] ? envOverride : DEFAULT_ENV;
+
+export const IS_LIVE = CURRENT_ENV === "live";
+
+/** Backend root origin (Local or Railway live) */
 export const BACKEND_URL = normalizeBaseUrl(
   process.env.NEXT_PUBLIC_BACKEND_URL ??
-    process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ??
-    DEFAULT_BACKEND_URL
+  process.env.NEXT_PUBLIC_BACKEND_ORIGIN ??
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ??
+  URL_CONFIG[CURRENT_ENV].origin
 );
 
+export const BACKEND_ORIGIN = BACKEND_URL;
+
 /** Full backend API base: {BACKEND_URL}/api/v1 */
-export const API_BASE_URL = `${BACKEND_URL}/api/v1`;
+export const API_BASE_URL = normalizeBaseUrl(
+  process.env.NEXT_PUBLIC_API_BASE_URL ??
+  process.env.NEXT_PUBLIC_API_URL ??
+  `${BACKEND_URL}/api/v1`
+);
+
+// 🔍 Console Log Indicator (Browser Console / Terminal me dikhega)
+if (typeof window !== "undefined" || process.env.NODE_ENV !== "production") {
+  console.log(
+    `%c[TradeNexa Admin] 🌐 Active ENV: %c${CURRENT_ENV.toUpperCase()}%c | API: %c${API_BASE_URL}`,
+    "color: #888; font-weight: bold;",
+    `color: ${IS_LIVE ? "#10b981" : "#f59e0b"}; font-weight: bold;`,
+    "color: #888;",
+    "color: #3b82f6; font-weight: bold;"
+  );
+}
+
 
 export const API_ENDPOINTS = {
   auth: {

@@ -31,12 +31,15 @@ export type AppEnvironment = keyof typeof URL_CONFIG;
 // ==============================================================================
 const DEFAULT_ENV: AppEnvironment = "live"; // 👈 Change to 'live' for production
 
-function normalizeBaseUrl(url: string): string {
+function normalizeBaseUrl(url: unknown, fallback: string): string {
+  if (!url || typeof url !== "string" || !url.trim()) {
+    return fallback;
+  }
   let cleaned = url.trim().replace(/\/+$/, "");
   if (cleaned.includes("tradenexabackend-production.up.railway.app")) {
     cleaned = cleaned.replace("tradenexabackend-production.up.railway.app", "tradenexabackend-dev.up.railway.app");
   }
-  return cleaned;
+  return cleaned || fallback;
 }
 
 // Check environment variables first (allows override via .env or hosting provider)
@@ -46,20 +49,23 @@ export const CURRENT_ENV: AppEnvironment =
 
 export const IS_LIVE = CURRENT_ENV === "live";
 
+const defaultOrigin = URL_CONFIG[CURRENT_ENV].origin;
+const defaultApiUrl = URL_CONFIG[CURRENT_ENV].apiUrl;
+
 /** Backend root origin (Local or Railway live) */
 export const BACKEND_URL = normalizeBaseUrl(
-  process.env.NEXT_PUBLIC_BACKEND_URL ??
-  process.env.NEXT_PUBLIC_BACKEND_ORIGIN ??
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ??
-  URL_CONFIG[CURRENT_ENV].origin
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  process.env.NEXT_PUBLIC_BACKEND_ORIGIN ||
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, ""),
+  defaultOrigin
 );
 
 export const BACKEND_ORIGIN = BACKEND_URL;
 
 /** Full backend API base: {BACKEND_URL}/api/v1 */
 export const API_BASE_URL = normalizeBaseUrl(
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  process.env.NEXT_PUBLIC_API_URL ??
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL,
   `${BACKEND_URL}/api/v1`
 );
 

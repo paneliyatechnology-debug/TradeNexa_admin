@@ -489,7 +489,7 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
         ? selectedCategory.name
         : title;
 
-  const toCreateCategoryPayload = (data: CreateCategoryFormData): CreateCategoryInput => {
+  const toCreatePayload = (data: CreateCategoryFormData): CreateCategoryInput => {
     if (!(data.icon instanceof File)) {
       throw new Error("Icon is required");
     }
@@ -502,13 +502,6 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
     };
   };
 
-  const toCreateSubcategoryPayload = (data: CreateCategoryFormData): CreateCategoryInput => ({
-    name: data.name.trim(),
-    icon: data.icon ?? null,
-    image: data.image ?? null,
-    is_active: data.is_active,
-  });
-
   const toUpdatePayload = (data: CreateCategoryFormData): UpdateCategoryInput => ({
     name: data.name.trim(),
     icon: data.icon ?? null,
@@ -520,7 +513,7 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
 
   const handleCreateCategory = async (data: CreateCategoryFormData) => {
     try {
-      await categoriesService.createCategory(toCreateCategoryPayload(data));
+      await categoriesService.createCategory(toCreatePayload(data));
       toast.success("Category created successfully");
       setCreateCategoryOpen(false);
       setPage(1);
@@ -536,7 +529,7 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
     try {
       await categoriesService.createSubcategory(
         selectedCategory.id,
-        toCreateSubcategoryPayload(data)
+        toCreatePayload(data)
       );
       toast.success("Subcategory created successfully");
       setCreateSubcategoryOpen(false);
@@ -764,7 +757,6 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
         <CreateCategoryForm
           key={createSubcategoryOpen ? "create-subcategory-open" : "create-subcategory-closed"}
           formKey={createSubcategoryOpen ? "create-subcategory-open" : "create-subcategory-closed"}
-          isSubcategory
           submitLabel="Create Subcategory"
           onSubmit={handleCreateSubcategory}
           onCancel={() => setCreateSubcategoryOpen(false)}
@@ -820,7 +812,6 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
               key={`edit-subcategory-${editSubcategory.id}-loaded`}
               formKey={`edit-subcategory-${editSubcategory.id}-loaded`}
               mode="edit"
-              isSubcategory
               submitLabel="Save Changes"
               initialValues={{
                 name: editSubcategory.name,

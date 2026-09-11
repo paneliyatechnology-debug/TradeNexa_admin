@@ -1,77 +1,40 @@
 import { BACKEND_URL } from "@/config/api";
 
-/** Public upload URL on Railway — stored in API data, used for links. */
+/** Public upload URL on Railway — stored in API data, used for links and images. */
 export function resolveMediaUrl(url: string | null | undefined): string | null {
   if (!url) return null;
 
   const trimmed = url.trim();
   if (!trimmed) return null;
 
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+  if (trimmed.startsWith("data:") || trimmed.startsWith("blob:")) {
     return trimmed;
   }
 
-  const path = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
-  return `${BACKEND_URL}${path}`;
-}
-
-function toProxyPath(mediaUrl: string): string | null {
-  try {
-    const parsed = new URL(mediaUrl);
-
-    if (parsed.pathname.startsWith("/api/media/")) {
-      return parsed.pathname;
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    let clean = trimmed;
+    if (clean.includes("tradenexabackend-production.up.railway.app")) {
+      clean = clean.replace(
+        "tradenexabackend-production.up.railway.app",
+        "tradenexabackend-dev.up.railway.app"
+      );
     }
-
-    if (parsed.pathname.startsWith("/api/uploads/")) {
-      return parsed.pathname;
-    }
-
-    if (parsed.pathname.startsWith("/media/")) {
-      const mediaPath = parsed.pathname.replace(/^\/media\/?/, "");
-      return `/api/media/${mediaPath}`;
-    }
-
-    if (parsed.pathname.startsWith("/uploads/")) {
-      const uploadPath = parsed.pathname.replace(/^\/uploads\/?/, "");
-      return `/api/uploads/${uploadPath}`;
-    }
-
-    return null;
-  } catch {
-    if (mediaUrl.startsWith("/api/media/") || mediaUrl.startsWith("/api/uploads/")) {
-      return mediaUrl;
-    }
-
-    if (mediaUrl.startsWith("/media/")) {
-      return `/api${mediaUrl}`;
-    }
-
-    if (mediaUrl.startsWith("/uploads/")) {
-      return `/api${mediaUrl}`;
-    }
-
-    return null;
+    return clean;
   }
+
+  const cleanPath = trimmed.replace(/^\/+/, "");
+
+  if (cleanPath.startsWith("media/") || cleanPath.startsWith("uploads/")) {
+    return `${BACKEND_URL}/${cleanPath}`;
+  }
+
+  return `${BACKEND_URL}/media/${cleanPath}`;
 }
 
-/** Same-origin proxy URL for <img> previews (avoids Railway CORS/CORP from Vercel/localhost). */
 export function resolveMediaPreviewUrl(url: string | null | undefined): string | null {
-  const mediaUrl = resolveMediaUrl(url);
-  if (!mediaUrl) return null;
-
-  return toProxyPath(mediaUrl) ?? mediaUrl;
+  return resolveMediaUrl(url);
 }
 
-/** Prefer same-origin proxy for embedded images whenever available. */
 export function resolveMediaDisplayUrl(url: string | null | undefined): string | null {
-  const mediaUrl = resolveMediaUrl(url);
-  if (!mediaUrl) return null;
-
-  const proxyPath = toProxyPath(mediaUrl);
-  if (proxyPath) {
-    return proxyPath;
-  }
-
-  return mediaUrl;
+  return resolveMediaUrl(url);
 }

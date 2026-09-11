@@ -28,9 +28,14 @@ const categoryFormBaseSchema = z.object({
 
 export function getCategoryFormSchema(options?: {
   isEdit?: boolean;
+  isSubcategory?: boolean;
   existingIconUrl?: string | null;
 }) {
   return categoryFormBaseSchema.superRefine((data, ctx) => {
+    if (options?.isSubcategory) {
+      return;
+    }
+
     const hasNewIcon = data.icon instanceof File;
     const hasExistingIcon = Boolean(
       options?.isEdit && options.existingIconUrl && !data.clear_icon

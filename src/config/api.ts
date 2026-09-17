@@ -7,8 +7,8 @@ function normalizeBaseUrl(url: string): string {
 /** Railway backend root, e.g. https://tradenexabackend-production.up.railway.app */
 export const BACKEND_URL = normalizeBaseUrl(
   process.env.NEXT_PUBLIC_BACKEND_URL ??
-    process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ??
-    DEFAULT_BACKEND_URL
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ??
+  DEFAULT_BACKEND_URL
 );
 
 /** Full backend API base: {BACKEND_URL}/api/v1 */

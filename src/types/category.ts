@@ -61,5 +61,5 @@ export interface UpdateCategoryInput {
 }
 
 export interface CreateCategoryInput extends UpdateCategoryInput {
-  icon: File;
+  icon?: File | null;
 }

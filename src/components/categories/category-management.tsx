@@ -489,14 +489,17 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
         ? selectedCategory.name
         : title;
 
-  const toCreatePayload = (data: CreateCategoryFormData): CreateCategoryInput => {
-    if (!(data.icon instanceof File)) {
+  const toCreatePayload = (
+    data: CreateCategoryFormData,
+    requireIcon = true
+  ): CreateCategoryInput => {
+    if (requireIcon && !(data.icon instanceof File)) {
       throw new Error("Icon is required");
     }
 
     return {
       name: data.name.trim(),
-      icon: data.icon,
+      icon: data.icon ?? null,
       image: data.image ?? null,
       is_active: data.is_active,
     };
@@ -513,7 +516,7 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
 
   const handleCreateCategory = async (data: CreateCategoryFormData) => {
     try {
-      await categoriesService.createCategory(toCreatePayload(data));
+      await categoriesService.createCategory(toCreatePayload(data, true));
       toast.success("Category created successfully");
       setCreateCategoryOpen(false);
       setPage(1);
@@ -529,7 +532,7 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
     try {
       await categoriesService.createSubcategory(
         selectedCategory.id,
-        toCreatePayload(data)
+        toCreatePayload(data, false)
       );
       toast.success("Subcategory created successfully");
       setCreateSubcategoryOpen(false);
@@ -758,6 +761,7 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
           key={createSubcategoryOpen ? "create-subcategory-open" : "create-subcategory-closed"}
           formKey={createSubcategoryOpen ? "create-subcategory-open" : "create-subcategory-closed"}
           submitLabel="Create Subcategory"
+          requireIcon={false}
           onSubmit={handleCreateSubcategory}
           onCancel={() => setCreateSubcategoryOpen(false)}
         />
@@ -812,6 +816,7 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
               key={`edit-subcategory-${editSubcategory.id}-loaded`}
               formKey={`edit-subcategory-${editSubcategory.id}-loaded`}
               mode="edit"
+              requireIcon={false}
               submitLabel="Save Changes"
               initialValues={{
                 name: editSubcategory.name,

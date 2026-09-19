@@ -116,6 +116,13 @@ export const API_ENDPOINTS = {
     list: "/brands",
     detail: (id: number | string) => `/brands/${id}`,
   },
+  businessTypes: {
+    list: "/business-types",
+    detail: (id: number | string) => `/business-types/${id}`,
+  },
+  roles: {
+    list: "/roles",
+  },
   offers: {
     list: "/offers",
     detail: (id: number | string) => `/offers/${id}`,

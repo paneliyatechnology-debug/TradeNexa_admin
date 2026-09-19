@@ -27,6 +27,7 @@ export const businessTypesService = {
       limit: params.limit ?? 10,
       search: params.search || undefined,
       role_id: params.role_id,
+      exact_role: params.role_id ? true : undefined,
       is_active: params.is_active === undefined ? undefined : params.is_active,
       sort_by: params.sort_by,
       sort_order: params.sort_order,

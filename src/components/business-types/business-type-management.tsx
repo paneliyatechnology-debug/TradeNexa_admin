@@ -580,7 +580,7 @@ export function BusinessTypeManagement({ title, basePath }: BusinessTypeManageme
                             className="inline-flex items-center justify-center rounded bg-muted/70 px-2 py-0.5 font-mono text-xs font-semibold text-foreground"
                             title={`0-Based Index: ${zeroBasedId} | Database ID: #${item.id}`}
                           >
-                            {zeroBasedId}
+                            {item.id !== undefined && item.id !== null ? item.id : zeroBasedId}
                           </span>
                         </TableCell>
                         <TableCell className="font-semibold text-foreground">

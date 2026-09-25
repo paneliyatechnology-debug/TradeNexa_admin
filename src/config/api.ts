@@ -119,6 +119,9 @@ export const API_ENDPOINTS = {
   businessTypes: {
     list: "/business-types",
     detail: (id: number | string) => `/business-types/${id}`,
+    bulkDelete: "/business-types/bulk-delete",
+    bulk: "/business-types/bulk",
+    all: "/business-types/all",
   },
   roles: {
     list: "/roles",

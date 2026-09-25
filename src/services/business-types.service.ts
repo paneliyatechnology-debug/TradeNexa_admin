@@ -50,6 +50,34 @@ export const businessTypesService = {
     await apiClientDelete<null>(businessTypeDetailUrl(id));
   },
 
+  async bulkDeleteBusinessTypes(ids: number[]): Promise<void> {
+    if (!ids || ids.length === 0) return;
+    try {
+      await apiClientPost<{ message?: string; deletedCount?: number }>(
+        `${API_BASE_URL}${API_ENDPOINTS.businessTypes.bulkDelete}`,
+        { ids }
+      );
+    } catch {
+      // Fallback for live backend if bulk endpoint is not yet deployed
+      await Promise.all(ids.map((id) => this.deleteBusinessType(id)));
+    }
+  },
+
+  async deleteAllBusinessTypes(): Promise<void> {
+    try {
+      await apiClientDelete<{ message?: string }>(
+        `${API_BASE_URL}${API_ENDPOINTS.businessTypes.all}`
+      );
+    } catch {
+      // Fallback: fetch current business types and delete all
+      const res = await this.getBusinessTypes({ limit: 1000 });
+      const ids = (res.results || []).map((item) => item.id);
+      if (ids.length > 0) {
+        await Promise.all(ids.map((id) => this.deleteBusinessType(id)));
+      }
+    }
+  },
+
   async getRoles(): Promise<PaginatedData<AppRole>> {
     return apiClientGet<PaginatedData<AppRole>>(ROLES_LIST_URL, {
       limit: 50,

@@ -41,6 +41,7 @@ const SORTABLE_COLUMNS: {
   column: BusinessTypeSortBy;
   defaultOrder: SortOrder;
 }[] = [
+  { column: "id", defaultOrder: "asc" },
   { column: "name", defaultOrder: "asc" },
   { column: "code", defaultOrder: "asc" },
   { column: "created_at", defaultOrder: "desc" },
@@ -118,11 +119,15 @@ export function BusinessTypeManagement({ title, basePath }: BusinessTypeManageme
   const [sortBy, setSortBy] = useState<BusinessTypeSortBy | null>("name");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
 
-  // Dialog States
+  // Dialog & Bulk States
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<BusinessType | null>(null);
   const [deletingItem, setDeletingItem] = useState<BusinessType | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [isDeleteSelectedOpen, setIsDeleteSelectedOpen] = useState(false);
+  const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   // Load Roles for filter dropdown and form select (only Buyer, Seller, Buyer+Seller)
   const loadRoles = useCallback(async () => {
@@ -245,12 +250,44 @@ export function BusinessTypeManagement({ title, basePath }: BusinessTypeManageme
     }
   };
 
+  const isAllPageSelected =
+    data.results.length > 0 &&
+    data.results.every((item) => selectedIds.includes(item.id));
+  const isSomePageSelected =
+    data.results.some((item) => selectedIds.includes(item.id)) && !isAllPageSelected;
+
+  const handleToggleSelectAllPage = () => {
+    if (isAllPageSelected) {
+      const pageIdSet = new Set(data.results.map((i) => i.id));
+      setSelectedIds((prev) => prev.filter((id) => !pageIdSet.has(id)));
+    } else {
+      const newIds = new Set([...selectedIds, ...data.results.map((i) => i.id)]);
+      setSelectedIds(Array.from(newIds));
+    }
+  };
+
+  const handleToggleRow = (id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllOnPage = () => {
+    const newIds = new Set([...selectedIds, ...data.results.map((i) => i.id)]);
+    setSelectedIds(Array.from(newIds));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedIds([]);
+  };
+
   const handleDelete = async () => {
     if (!deletingItem) return;
     setIsDeleting(true);
     try {
       await businessTypesService.deleteBusinessType(deletingItem.id);
       toast.success("Business type deleted successfully");
+      setSelectedIds((prev) => prev.filter((id) => id !== deletingItem.id));
       setDeletingItem(null);
       fetchData(true);
     } catch (err: unknown) {
@@ -258,6 +295,41 @@ export function BusinessTypeManagement({ title, basePath }: BusinessTypeManageme
       toast.error(message);
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0) return;
+    setIsBulkDeleting(true);
+    try {
+      await businessTypesService.bulkDeleteBusinessTypes(selectedIds);
+      toast.success(`${selectedIds.length} business type(s) deleted successfully`);
+      setSelectedIds([]);
+      setIsDeleteSelectedOpen(false);
+      fetchData(true);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to delete selected business types";
+      toast.error(message);
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    setIsBulkDeleting(true);
+    try {
+      await businessTypesService.deleteAllBusinessTypes();
+      toast.success("All business types deleted successfully");
+      setSelectedIds([]);
+      setIsDeleteAllOpen(false);
+      fetchData(true);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to delete all business types";
+      toast.error(message);
+    } finally {
+      setIsBulkDeleting(false);
     }
   };
 
@@ -282,11 +354,65 @@ export function BusinessTypeManagement({ title, basePath }: BusinessTypeManageme
           </p>
         </div>
 
-        <Button onClick={() => setIsCreateOpen(true)} className="shrink-0 gap-2">
-          <Plus className="h-4 w-4" />
-          Add Business Type
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {data.pagination.total > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteAllOpen(true)}
+              className="shrink-0 gap-2 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete All
+            </Button>
+          )}
+          <Button onClick={() => setIsCreateOpen(true)} className="shrink-0 gap-2">
+            <Plus className="h-4 w-4" />
+            Add Business Type
+          </Button>
+        </div>
       </div>
+
+      {/* Floating / Active Selection Banner */}
+      {selectedIds.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5 text-sm dark:bg-primary/10">
+          <div className="flex items-center gap-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+              {selectedIds.length}
+            </span>
+            <span className="font-medium text-foreground">
+              {selectedIds.length} business type(s) selected
+            </span>
+            {selectedIds.length < data.results.length && (
+              <button
+                type="button"
+                onClick={handleSelectAllOnPage}
+                className="ml-2 text-xs font-medium text-primary underline underline-offset-2 hover:opacity-80"
+              >
+                Select all on this page ({data.results.length})
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDeselectAll}
+              className="h-8 text-xs text-muted-foreground hover:text-foreground"
+            >
+              Clear Selection
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => setIsDeleteSelectedOpen(true)}
+              className="h-8 gap-1.5 text-xs"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete Selected ({selectedIds.length})
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Main Filter & Table Card */}
       <Card>
@@ -346,6 +472,27 @@ export function BusinessTypeManagement({ title, basePath }: BusinessTypeManageme
             <DataTable>
               <thead>
                 <TableHeadRow>
+                  <TableHeadCell className="w-12 px-3">
+                    <input
+                      type="checkbox"
+                      checked={isAllPageSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = isSomePageSelected;
+                      }}
+                      disabled={data.results.length === 0}
+                      onChange={handleToggleSelectAllPage}
+                      aria-label="Select all business types on this page"
+                      className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                    />
+                  </TableHeadCell>
+                  <SortableTableHead
+                    label="ID"
+                    column="id"
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onSort={handleSort}
+                    className="w-16"
+                  />
                   <SortableTableHead
                     label="Name"
                     column="name"
@@ -376,7 +523,7 @@ export function BusinessTypeManagement({ title, basePath }: BusinessTypeManageme
               <TableBody>
                 {data.results.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-64 text-center">
+                    <TableCell colSpan={8} className="h-64 text-center">
                       <EmptyState
                         icon={<Briefcase className="h-5 w-5" />}
                         title="No business types found"
@@ -410,54 +557,79 @@ export function BusinessTypeManagement({ title, basePath }: BusinessTypeManageme
                     </TableCell>
                   </TableRow>
                 ) : (
-                  data.results.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-semibold text-foreground">
-                        <div className="flex items-center gap-2">
-                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                            <Briefcase className="h-3.5 w-3.5" />
+                  data.results.map((item, index) => {
+                    const zeroBasedId = (page - 1) * limit + index;
+                    const isSelected = selectedIds.includes(item.id);
+
+                    return (
+                      <TableRow
+                        key={item.id}
+                        className={cn(isSelected && "bg-primary/5 dark:bg-primary/10")}
+                      >
+                        <TableCell className="w-12 px-3">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleToggleRow(item.id)}
+                            aria-label={`Select ${item.name}`}
+                            className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                          />
+                        </TableCell>
+                        <TableCell className="w-16">
+                          <span
+                            className="inline-flex items-center justify-center rounded bg-muted/70 px-2 py-0.5 font-mono text-xs font-semibold text-foreground"
+                            title={`0-Based Index: ${zeroBasedId} | Database ID: #${item.id}`}
+                          >
+                            {zeroBasedId}
                           </span>
-                          {item.name}
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">
-                        {item.code || "—"}
-                      </TableCell>
-                      <TableCell>
-                        <RoleBadge roleName={item.role_name} />
-                      </TableCell>
-                      <TableCell align="center">
-                        <StatusBadge isActive={item.is_active} />
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {item.created_at
-                          ? new Date(item.created_at).toLocaleDateString("en-IN", {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            })
-                          : "—"}
-                      </TableCell>
-                      <TableCell align="right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <IconButton
-                            label="Edit business type"
-                            tone="view"
-                            onClick={() => setEditingItem(item)}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </IconButton>
-                          <IconButton
-                            label="Delete business type"
-                            tone="danger"
-                            onClick={() => setDeletingItem(item)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </IconButton>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                        </TableCell>
+                        <TableCell className="font-semibold text-foreground">
+                          <div className="flex items-center gap-2">
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                              <Briefcase className="h-3.5 w-3.5" />
+                            </span>
+                            {item.name}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {item.code || "—"}
+                        </TableCell>
+                        <TableCell>
+                          <RoleBadge roleName={item.role_name} />
+                        </TableCell>
+                        <TableCell align="center">
+                          <StatusBadge isActive={item.is_active} />
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {item.created_at
+                            ? new Date(item.created_at).toLocaleDateString("en-IN", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              })
+                            : "—"}
+                        </TableCell>
+                        <TableCell align="right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <IconButton
+                              label="Edit business type"
+                              tone="view"
+                              onClick={() => setEditingItem(item)}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </IconButton>
+                            <IconButton
+                              label="Delete business type"
+                              tone="danger"
+                              onClick={() => setDeletingItem(item)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </IconButton>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </DataTable>
@@ -523,11 +695,35 @@ export function BusinessTypeManagement({ title, basePath }: BusinessTypeManageme
         open={Boolean(deletingItem)}
         onClose={() => setDeletingItem(null)}
         title="Delete Business Type"
-        description={`Are you sure you want to delete "${deletingItem?.name}"? This action will soft-delete the business type from active registration lists.`}
+        description={`Are you sure you want to delete "${deletingItem?.name}"? This action will remove the business type.`}
         confirmLabel="Delete"
         variant="destructive"
         loading={isDeleting}
         onConfirm={handleDelete}
+      />
+
+      {/* Delete Selected Confirmation Dialog */}
+      <ConfirmDialog
+        open={isDeleteSelectedOpen}
+        onClose={() => setIsDeleteSelectedOpen(false)}
+        title={`Delete ${selectedIds.length} Selected Business Types`}
+        description={`Are you sure you want to delete ${selectedIds.length} selected business type(s)? This action will remove the selected business types.`}
+        confirmLabel={`Delete (${selectedIds.length})`}
+        variant="destructive"
+        loading={isBulkDeleting}
+        onConfirm={handleDeleteSelected}
+      />
+
+      {/* Delete All Confirmation Dialog */}
+      <ConfirmDialog
+        open={isDeleteAllOpen}
+        onClose={() => setIsDeleteAllOpen(false)}
+        title="Delete All Business Types"
+        description={`Are you sure you want to delete all ${data.pagination.total} business types? This action will completely remove all business types from the database.`}
+        confirmLabel="Delete All"
+        variant="destructive"
+        loading={isBulkDeleting}
+        onConfirm={handleDeleteAll}
       />
     </div>
   );

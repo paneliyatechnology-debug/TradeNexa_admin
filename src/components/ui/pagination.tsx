@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { ApiPagination } from "@/types/api";
 
 interface PaginationProps {
-  pagination: ApiPagination;
+  pagination?: ApiPagination | null;
   onPageChange: (page: number) => void;
   className?: string;
 }
@@ -14,7 +14,12 @@ export function Pagination({
   onPageChange,
   className,
 }: PaginationProps) {
-  const { page, totalPages, total, limit } = pagination;
+  if (!pagination) return null;
+
+  const page = pagination.page ?? 1;
+  const totalPages = pagination.totalPages ?? 1;
+  const total = pagination.total ?? 0;
+  const limit = pagination.limit ?? 10;
   const start = total === 0 ? 0 : (page - 1) * limit + 1;
   const end = Math.min(page * limit, total);
 

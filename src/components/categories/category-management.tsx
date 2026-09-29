@@ -473,11 +473,11 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
     },
     ...(selectedCategory
       ? [
-          {
-            label: selectedCategory.name,
-            ...(view === "products" ? { onClick: goToSubcategories } : {}),
-          },
-        ]
+        {
+          label: selectedCategory.name,
+          ...(view === "products" ? { onClick: goToSubcategories } : {}),
+        },
+      ]
       : []),
     ...(selectedSubcategory ? [{ label: selectedSubcategory.name }] : []),
   ];
@@ -489,11 +489,8 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
         ? selectedCategory.name
         : title;
 
-  const toCreatePayload = (
-    data: CreateCategoryFormData,
-    requireIcon = true
-  ): CreateCategoryInput => {
-    if (requireIcon && !(data.icon instanceof File)) {
+  const toCreatePayload = (data: CreateCategoryFormData): CreateCategoryInput => {
+    if (!(data.icon instanceof File)) {
       throw new Error("Icon is required");
     }
 
@@ -504,6 +501,13 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
       is_active: data.is_active,
     };
   };
+
+  const toCreateSubcategoryPayload = (data: CreateCategoryFormData): CreateCategoryInput => ({
+    name: data.name.trim(),
+    icon: data.icon ?? null,
+    image: data.image ?? null,
+    is_active: data.is_active,
+  });
 
   const toUpdatePayload = (data: CreateCategoryFormData): UpdateCategoryInput => ({
     name: data.name.trim(),
@@ -516,7 +520,7 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
 
   const handleCreateCategory = async (data: CreateCategoryFormData) => {
     try {
-      await categoriesService.createCategory(toCreatePayload(data, true));
+      await categoriesService.createCategory(toCreatePayload(data));
       toast.success("Category created successfully");
       setCreateCategoryOpen(false);
       setPage(1);
@@ -532,7 +536,7 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
     try {
       await categoriesService.createSubcategory(
         selectedCategory.id,
-        toCreatePayload(data, false)
+        toCreatePayload(data)
       );
       toast.success("Subcategory created successfully");
       setCreateSubcategoryOpen(false);
@@ -629,13 +633,13 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
         }
 
         await fetchSubcategories(
-        selectedCategory.id,
-        page,
-        activeFilter,
-        subSearch,
-        subSortBy,
-        subSortOrder
-      );
+          selectedCategory.id,
+          page,
+          activeFilter,
+          subSearch,
+          subSortBy,
+          subSortOrder
+        );
       }
 
       setDeleteTarget(null);
@@ -760,6 +764,7 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
         <CreateCategoryForm
           key={createSubcategoryOpen ? "create-subcategory-open" : "create-subcategory-closed"}
           formKey={createSubcategoryOpen ? "create-subcategory-open" : "create-subcategory-closed"}
+          isSubcategory
           submitLabel="Create Subcategory"
           requireIcon={false}
           onSubmit={handleCreateSubcategory}
@@ -816,7 +821,6 @@ export function CategoryManagement({ title, basePath }: CategoryManagementProps)
               key={`edit-subcategory-${editSubcategory.id}-loaded`}
               formKey={`edit-subcategory-${editSubcategory.id}-loaded`}
               mode="edit"
-              requireIcon={false}
               submitLabel="Save Changes"
               initialValues={{
                 name: editSubcategory.name,
@@ -1153,45 +1157,45 @@ function CategoriesView({
           <TableLoadingOverlay loading={loading}>
             <div className="divide-y divide-border">
               {data.results.map((category) => (
-            <div
-              key={category.id}
-              className="flex items-center gap-2 px-4 py-2.5 sm:px-6 hover:bg-accent/40 transition-colors"
-            >
-              <button
-                type="button"
-                onClick={() => onSelect(category)}
-                className="flex min-w-0 flex-1 items-center gap-4 text-left"
-              >
-                <CategoryIcon icon={category.icon} name={category.name} />
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{category.name}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{category.slug}</p>
-                </div>
-                <div className="hidden sm:flex items-center gap-2 shrink-0">
-                  <StatusBadge isActive={category.is_active} />
-                  <Badge variant="info">{category.subcategory_count} subcategories</Badge>
-                  <Badge variant="outline">{category.product_count} products</Badge>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-              </button>
-              <div className="flex shrink-0 items-center gap-1.5">
-                <IconButton
-                  label="Edit category"
-                  tone="view"
-                  onClick={() => onEdit(category)}
+                <div
+                  key={category.id}
+                  className="flex items-center gap-2 px-4 py-2.5 sm:px-6 hover:bg-accent/40 transition-colors"
                 >
-                  <Pencil className="h-3.5 w-3.5" />
-                </IconButton>
-                <IconButton
-                  label="Delete category"
-                  tone="danger"
-                  onClick={() => onDelete(category)}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </IconButton>
-              </div>
-            </div>
-          ))}
+                  <button
+                    type="button"
+                    onClick={() => onSelect(category)}
+                    className="flex min-w-0 flex-1 items-center gap-4 text-left"
+                  >
+                    <CategoryIcon icon={category.icon} name={category.name} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{category.name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{category.slug}</p>
+                    </div>
+                    <div className="hidden sm:flex items-center gap-2 shrink-0">
+                      <StatusBadge isActive={category.is_active} />
+                      <Badge variant="info">{category.subcategory_count} subcategories</Badge>
+                      <Badge variant="outline">{category.product_count} products</Badge>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </button>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <IconButton
+                      label="Edit category"
+                      tone="view"
+                      onClick={() => onEdit(category)}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </IconButton>
+                    <IconButton
+                      label="Delete category"
+                      tone="danger"
+                      onClick={() => onDelete(category)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </IconButton>
+                  </div>
+                </div>
+              ))}
             </div>
           </TableLoadingOverlay>
         )}
@@ -1322,46 +1326,46 @@ function SubcategoriesView({
           <TableLoadingOverlay loading={loading}>
             <div className="divide-y divide-border">
               {data.results.map((sub) => (
-            <div
-              key={sub.id}
-              className="flex items-center gap-2 px-4 py-2.5 sm:px-6 hover:bg-accent/40 transition-colors"
-            >
-              <button
-                type="button"
-                onClick={() => onSelect(sub)}
-                className="flex min-w-0 flex-1 items-center gap-4 text-left"
-              >
-                <SubcategoryIcon icon={sub.icon} name={sub.name} />
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{sub.name}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{sub.slug}</p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <StatusBadge isActive={sub.is_active} />
-                  <Badge variant="outline">
-                    {sub.product_count ?? 0} products
-                  </Badge>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-              </button>
-              <div className="flex shrink-0 items-center gap-1.5">
-                <IconButton
-                  label="Edit subcategory"
-                  tone="view"
-                  onClick={() => onEdit(sub)}
+                <div
+                  key={sub.id}
+                  className="flex items-center gap-2 px-4 py-2.5 sm:px-6 hover:bg-accent/40 transition-colors"
                 >
-                  <Pencil className="h-3.5 w-3.5" />
-                </IconButton>
-                <IconButton
-                  label="Delete subcategory"
-                  tone="danger"
-                  onClick={() => onDelete(sub)}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </IconButton>
-              </div>
-            </div>
-          ))}
+                  <button
+                    type="button"
+                    onClick={() => onSelect(sub)}
+                    className="flex min-w-0 flex-1 items-center gap-4 text-left"
+                  >
+                    <SubcategoryIcon icon={sub.icon} name={sub.name} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{sub.name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{sub.slug}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <StatusBadge isActive={sub.is_active} />
+                      <Badge variant="outline">
+                        {sub.product_count ?? 0} products
+                      </Badge>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </button>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <IconButton
+                      label="Edit subcategory"
+                      tone="view"
+                      onClick={() => onEdit(sub)}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </IconButton>
+                    <IconButton
+                      label="Delete subcategory"
+                      tone="danger"
+                      onClick={() => onDelete(sub)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </IconButton>
+                  </div>
+                </div>
+              ))}
             </div>
           </TableLoadingOverlay>
         )}

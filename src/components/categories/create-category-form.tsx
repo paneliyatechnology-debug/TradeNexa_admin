@@ -22,7 +22,6 @@ interface CreateCategoryFormProps {
   onCancel: () => void;
   formKey?: string;
   mode?: "create" | "edit";
-  requireIcon?: boolean;
   initialValues?: CategoryFormInitialValues;
 }
 
@@ -54,17 +53,17 @@ export function CreateCategoryForm({
   onCancel,
   formKey,
   mode = "create",
-  requireIcon = true,
   initialValues,
 }: CreateCategoryFormProps) {
   const schema = useMemo(
     () =>
       getCategoryFormSchema({
         isEdit: mode === "edit",
+        isSubcategory,
         existingIconUrl: initialValues?.iconUrl,
         requireIcon,
       }),
-    [mode, initialValues?.iconUrl, requireIcon]
+    [mode, initialValues?.iconUrl]
   );
 
   const {
@@ -134,7 +133,7 @@ export function CreateCategoryForm({
               render={({ field }) => (
                 <FileUpload
                   label="Icon"
-                  required={requireIcon}
+                  required
                   variant="compact"
                   value={field.value ?? null}
                   existingUrl={clearIcon ? null : initialValues?.iconUrl}

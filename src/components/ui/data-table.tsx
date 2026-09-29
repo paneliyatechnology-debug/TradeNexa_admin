@@ -6,7 +6,7 @@ import type { SortOrder } from "@/types/api";
 import { cn } from "@/utils/cn";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { forwardRef } from "react";
-import type { HTMLAttributes, ReactNode, ThHTMLAttributes } from "react";
+import type { HTMLAttributes, ReactNode, TdHTMLAttributes, ThHTMLAttributes } from "react";
 
 /** Scroll container + ledger styling for admin data tables. */
 export function DataTable({
@@ -126,7 +126,7 @@ export function TableCell({
   className,
   align = "left",
   ...props
-}: HTMLAttributes<HTMLTableCellElement> & {
+}: TdHTMLAttributes<HTMLTableCellElement> & {
   align?: "left" | "center" | "right";
 }) {
   return (

@@ -1,26 +1,39 @@
-import { BACKEND_URL } from "@/config/api";
+import { BACKEND_URL, URL_CONFIG } from "@/config/api";
 
 interface RouteParams {
   params: Promise<{ path: string[] }>;
 }
 
-export async function GET(_request: Request, { params }: RouteParams) {
+export async function GET(request: Request, { params }: RouteParams) {
   const { path } = await params;
-  const url = `${BACKEND_URL}/uploads/${path.join("/")}`;
+  const rawPath = path ? (Array.isArray(path) ? path.join("/") : String(path)) : "";
+  const cleanPath = rawPath.replace(/^(uploads|media)\//, "");
+  const search = new URL(request.url).search;
 
-  const response = await fetch(url, { cache: "no-store" });
+  const candidateUrls = [
+    `${BACKEND_URL}/uploads/${cleanPath}${search}`,
+    `${BACKEND_URL}/media/${cleanPath}${search}`,
+    `${URL_CONFIG.live.origin}/uploads/${cleanPath}${search}`,
+    `${URL_CONFIG.live.origin}/media/${cleanPath}${search}`,
+  ];
 
-  if (!response.ok) {
-    return new Response("Media not found", { status: response.status });
+  for (const targetUrl of candidateUrls) {
+    try {
+      const response = await fetch(targetUrl, { cache: "no-store" });
+      if (response.ok) {
+        const contentType = response.headers.get("content-type") ?? "application/octet-stream";
+        const body = await response.arrayBuffer();
+        return new Response(body, {
+          headers: {
+            "Content-Type": contentType,
+            "Cache-Control": "public, max-age=3600",
+          },
+        });
+      }
+    } catch {
+      /* try next candidate */
+    }
   }
 
-  const contentType = response.headers.get("content-type") ?? "application/octet-stream";
-  const body = await response.arrayBuffer();
-
-  return new Response(body, {
-    headers: {
-      "Content-Type": contentType,
-      "Cache-Control": "public, max-age=3600",
-    },
-  });
+  return new Response("Media not found", { status: 404 });
 }

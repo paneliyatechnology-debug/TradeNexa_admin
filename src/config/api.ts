@@ -2,14 +2,6 @@
  * ==============================================================================
  * TradeNexa Admin - API & Server URL Configuration
  * ==============================================================================
- * 
- * Aap yahan se easily Local (Testing) aur Live (Production) URL switch kar sakte hain.
- * 
- * 1. DIRECT TOGGLE:
- *    Neeche diye gaye `DEFAULT_ENV` ko 'local' ya 'live' set karein.
- * 
- * 2. YA .env FILE SE:
- *    .env.local me `NEXT_PUBLIC_ENV=local` ya `NEXT_PUBLIC_ENV=live` likhein.
  */
 
 export const URL_CONFIG = {
@@ -18,82 +10,111 @@ export const URL_CONFIG = {
     apiUrl: "http://localhost:5000/api/v1",
   },
   live: {
-    origin: "https://tradenexabackend-dev.up.railway.app",
-    apiUrl: "https://tradenexabackend-dev.up.railway.app/api/v1",
+    origin: "https://tradenexabackend-production.up.railway.app",
+    apiUrl: "https://tradenexabackend-production.up.railway.app/api/v1",
   },
 } as const;
+
 
 export type AppEnvironment = keyof typeof URL_CONFIG;
 
 // ==============================================================================
-// ⚙️ MANUAL TOGGLE (Yahan change karke toggle kar sakte hain):
-// Set to 'local' for testing, or 'live' for production
+// ⚙️ MANUAL TOGGLE
 // ==============================================================================
-const DEFAULT_ENV: AppEnvironment = "live"; // 👈 Change to 'live' for production
+
+const DEFAULT_ENV: AppEnvironment = "live";
 
 function normalizeBaseUrl(url: unknown, fallback: string): string {
   if (!url || typeof url !== "string" || !url.trim()) {
     return fallback;
   }
+
   let cleaned = url.trim().replace(/\/+$/, "");
+
+  // Prevent accidentally using old production Railway URL
   if (cleaned.includes("tradenexabackend-production.up.railway.app")) {
-    cleaned = cleaned.replace("tradenexabackend-production.up.railway.app", "tradenexabackend-dev.up.railway.app");
+    cleaned = cleaned.replace(
+      "tradenexabackend-production.up.railway.app",
+      "tradenexabackend-production.up.railway.app"
+    );
   }
+
   return cleaned || fallback;
 }
 
-// Check environment variables first (allows override via .env or hosting provider)
-const envOverride = process.env.NEXT_PUBLIC_ENV?.toLowerCase()?.trim() as AppEnvironment | undefined;
+// ==============================================================================
+// Environment
+// ==============================================================================
+
+const envOverride = process.env.NEXT_PUBLIC_ENV
+  ?.toLowerCase()
+  ?.trim() as AppEnvironment | undefined;
+
 export const CURRENT_ENV: AppEnvironment =
-  envOverride && URL_CONFIG[envOverride] ? envOverride : DEFAULT_ENV;
+  envOverride && URL_CONFIG[envOverride]
+    ? envOverride
+    : DEFAULT_ENV;
 
 export const IS_LIVE = CURRENT_ENV === "live";
+
+// ==============================================================================
+// Backend URLs
+// ==============================================================================
 
 const defaultOrigin = URL_CONFIG[CURRENT_ENV].origin;
 const defaultApiUrl = URL_CONFIG[CURRENT_ENV].apiUrl;
 
-/** Backend root origin (Local or Railway live) */
+/**
+ * Backend root origin
+ *
+ * Local:
+ * http://localhost:5000
+ *
+ * Live:
+ * https://tradenexabackend-dev.up.railway.app
+ */
 export const BACKEND_URL = normalizeBaseUrl(
   process.env.NEXT_PUBLIC_BACKEND_URL ??
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ??
-  DEFAULT_BACKEND_URL
+  defaultOrigin,
+  defaultOrigin
 );
 
-/** Full backend API base: {BACKEND_URL}/api/v1 */
+/**
+ * Full backend API base URL.
+ *
+ * Local dev:  Set NEXT_PUBLIC_API_BASE_URL=/api/v1 in .env.local
+ *             → Next.js proxy forwards to Railway (no CORS)
+ *
+ * Production: Leave unset → falls back to full Railway URL
+ */
 export const API_BASE_URL = normalizeBaseUrl(
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ??
   process.env.NEXT_PUBLIC_API_URL,
   `${BACKEND_URL}/api/v1`
 );
 
-// 🔍 Console Log Indicator (Browser Console / Terminal me dikhega)
-if (typeof window !== "undefined" || process.env.NODE_ENV !== "production") {
-  console.log(
-    `%c[TradeNexa Admin] 🌐 Active ENV: %c${CURRENT_ENV.toUpperCase()}%c | API: %c${API_BASE_URL}`,
-    "color: #888; font-weight: bold;",
-    `color: ${IS_LIVE ? "#10b981" : "#f59e0b"}; font-weight: bold;`,
-    "color: #888;",
-    "color: #3b82f6; font-weight: bold;"
-  );
-}
 
+// ==============================================================================
+// API Endpoints
+// ==============================================================================
 
 export const API_ENDPOINTS = {
+  // ── Auth ──────────────────────────────────────────────────────────────────
   auth: {
     login: "/admin/auth/login",
     logout: "/auth/logout",
-    profile: "/auth/profile",
-    me: "/admin/auth/me",
     refresh: "/auth/refresh-token",
-    forgotPassword: "/admin/auth/forgot-password",
+    profile: "/auth/profile",
   },
-  categories: {
-    list: "/categories",
-    detail: (id: number | string) => `/categories/${id}`,
-    subcategories: (id: number | string) => `/categories/${id}/subcategories`,
-    subcategory: (categoryId: number | string, subId: number | string) =>
-      `/categories/${categoryId}/subcategories/${subId}`,
+
+  // ── Dashboard ─────────────────────────────────────────────────────────────
+  dashboard: {
+    admin: "/dashboard/admin",
+    seller: "/dashboard/seller",
   },
+
+  // ── Products ──────────────────────────────────────────────────────────────
   products: {
     list: "/products",
     detail: (id: number | string) => `/products/${id}`,
@@ -105,55 +126,54 @@ export const API_ENDPOINTS = {
       reject: "/products/admin/reject",
     },
   },
+
+  // ── Categories ────────────────────────────────────────────────────────────
+  categories: {
+    list: "/categories",
+    detail: (id: number | string) => `/categories/${id}`,
+    subcategories: (id: number | string) => `/categories/${id}/subcategories`,
+    subcategory: (categoryId: number | string, subId: number | string) =>
+      `/categories/${categoryId}/subcategories/${subId}`,
+  },
+
+  // ── Banners ───────────────────────────────────────────────────────────────
   banners: {
     list: "/banners",
     detail: (id: number | string) => `/banners/${id}`,
   },
+
+  // ── Brands ────────────────────────────────────────────────────────────────
   brands: {
     list: "/brands",
     detail: (id: number | string) => `/brands/${id}`,
   },
+
+  // ── Business Types ────────────────────────────────────────────────────────
   businessTypes: {
     list: "/business-types",
     detail: (id: number | string) => `/business-types/${id}`,
     bulkDelete: "/business-types/bulk-delete",
-    bulk: "/business-types/bulk",
     all: "/business-types/all",
   },
-  roles: {
-    list: "/roles",
-  },
+
+  // ── Offers ────────────────────────────────────────────────────────────────
   offers: {
     list: "/offers",
     detail: (id: number | string) => `/offers/${id}`,
   },
-  users: {
-    list: "/users",
-    detail: (id: string) => `/users/${id}`,
-  },
-  sellers: {
-    list: "/sellers",
-    detail: (id: string) => `/sellers/${id}`,
-  },
-  buyers: {
-    list: "/buyers",
-    detail: (id: string) => `/buyers/${id}`,
-  },
-  orders: {
-    list: "/orders",
-    detail: (id: string) => `/orders/${id}`,
-  },
-  support: {
-    tickets: "/support/tickets",
-    ticket: (id: string) => `/support/tickets/${id}`,
-  },
-  dashboard: {
-    admin: "/dashboard/admin",
-  },
-  reports: {
-    overview: "/reports/overview",
-  },
-  settings: {
-    general: "/settings/general",
+
+  // ── Roles ─────────────────────────────────────────────────────────────────
+  roles: {
+    list: "/roles",
   },
 } as const;
+
+// ==============================================================================
+// Console Debug
+// ==============================================================================
+
+if (typeof window !== "undefined" || process.env.NODE_ENV !== "production") {
+  console.log(
+    `[TradeNexa Admin] 🌐 Active ENV: ${CURRENT_ENV.toUpperCase()} | API: ${API_BASE_URL}`
+  );
+}

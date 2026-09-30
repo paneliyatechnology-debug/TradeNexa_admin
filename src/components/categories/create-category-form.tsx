@@ -23,6 +23,8 @@ interface CreateCategoryFormProps {
   formKey?: string;
   mode?: "create" | "edit";
   initialValues?: CategoryFormInitialValues;
+  isSubcategory?: boolean;
+  requireIcon?: boolean;
 }
 
 const FIELD_ORDER = ["name", "icon", "image"] as const;
@@ -54,6 +56,8 @@ export function CreateCategoryForm({
   formKey,
   mode = "create",
   initialValues,
+  isSubcategory = false,
+  requireIcon = true,
 }: CreateCategoryFormProps) {
   const schema = useMemo(
     () =>
@@ -63,7 +67,7 @@ export function CreateCategoryForm({
         existingIconUrl: initialValues?.iconUrl,
         requireIcon,
       }),
-    [mode, initialValues?.iconUrl]
+    [mode, isSubcategory, requireIcon, initialValues?.iconUrl]
   );
 
   const {

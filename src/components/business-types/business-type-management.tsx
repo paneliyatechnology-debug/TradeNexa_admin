@@ -141,17 +141,17 @@ export function BusinessTypeManagement({ title, basePath }: BusinessTypeManageme
         allowedRoles.length
           ? allowedRoles
           : [
-              { id: 1, name: "Buyer", code: "buyer", is_active: 1 },
-              { id: 2, name: "Seller", code: "seller", is_active: 1 },
-              { id: 3, name: "Buyer + Seller", code: "buyer_seller", is_active: 1 },
+              { id: 2, name: "Buyer", code: "buyer", is_active: 1 },
+              { id: 3, name: "Seller", code: "seller", is_active: 1 },
+              { id: 4, name: "Buyer + Seller", code: "buyer_seller", is_active: 1 },
             ]
       );
     } catch {
       // Fallback standard roles
       setRoles([
-        { id: 1, name: "Buyer", code: "buyer", is_active: 1 },
-        { id: 2, name: "Seller", code: "seller", is_active: 1 },
-        { id: 3, name: "Buyer + Seller", code: "buyer_seller", is_active: 1 },
+        { id: 2, name: "Buyer", code: "buyer", is_active: 1 },
+        { id: 3, name: "Seller", code: "seller", is_active: 1 },
+        { id: 4, name: "Buyer + Seller", code: "buyer_seller", is_active: 1 },
       ]);
     }
   }, []);
